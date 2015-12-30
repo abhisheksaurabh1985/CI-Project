@@ -21,5 +21,3 @@ indexedVocabulary, vocabWordCount, wordMatrix = generateWordMatrix(wordVectorFil
 all_sentences, all_labels, sentence = getSentences(trainingDataFile)
 print sentence
 
-##sentences, labels, sentence = _split_into_sentences(trainingDataFile)
-##print sentence
