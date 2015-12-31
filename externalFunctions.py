@@ -61,12 +61,13 @@ def getSentences(trainingDataFileName):
 # indexed dictionary created from the vocabulary by the function generateWordMatrix.
 def generateWordWindows(windowPadding, dictionaryIndex, listAllSentences, listAllLabels):
     indexStartToken = dictionaryIndex['<s>']
-    print indexStartToken
+##    print indexStartToken
     indexEndToken = dictionaryIndex['</s>']
-    print indexEndToken
-    listWindows = []
+##    print indexEndToken
+    listListWindows = []
     for eachSentence in listAllSentences:
         lengthEachSentence = len(eachSentence)
+        listEachSentenceWindow = []
         for i in range(lengthEachSentence):
             wordWithContext = []
             for j in range(i-windowPadding, i + windowPadding + 1):
@@ -81,9 +82,17 @@ def generateWordWindows(windowPadding, dictionaryIndex, listAllSentences, listAl
                     wordWithContext = wordWithContext + [indexStartToken]
                 elif j == lengthEachSentence:
                     wordWithContext = wordWithContext + [indexEndToken]
-            listWindows = listWindows + [wordWithContext]
-
+            listEachSentenceWindow = listEachSentenceWindow + [wordWithContext]
+        listListWindows = listListWindows + [listEachSentenceWindow]  
+    
+    # Unpack the nested list into a single list. This will facilitate testing of output of this function.
+    listWindows = []
+    for listItem in listListWindows:
+        listWindows = listWindows + listItem
+    # Test if the count of word windows matches the count of labels
     if len(listWindows) != len(listAllLabels):
         print "Error in dataset: Mismatch between the number of word windows and number of labels."
+    else:
+        print "Total number of word windows equals the number of labels."
 
-    return listWindows
+    return listListWindows, listWindows

@@ -7,7 +7,7 @@ import numpy as np
 
 # Path to the data files
 dataDirectory = "data/"
-trainingDataFile = dataDirectory + "train"
+trainingDataFile = dataDirectory + "train" # Change it to train_original before submission
 wordVectorFile = dataDirectory + "wordVectors_original.txt"
 vocabularyFile = dataDirectory + "vocab_original.txt"
 
@@ -22,24 +22,6 @@ all_sentences, all_labels, lastSentence = getSentences(trainingDataFile)
 ## print lastSentence
 
 windowPadding = 1
-contextSize = 3
-sentenceTuples = generateWordWindows(windowPadding, indexedVocabulary, all_sentences, all_labels)
+## contextSize = 3
+nestedListSentenceTuples, listSentenceTuples = generateWordWindows(windowPadding, indexedVocabulary, all_sentences, all_labels)
 
-# =============
-# TEST SCRIPTS
-# =============
-# Test scripts for the function generateWordWindows()
-
-# Get first sentence
-all_sentences[10]
-
-# Get word tuples for the first sentence
-for i in range(len(all_sentences[10])):
-    print sentenceTuples[i]
-
-# Get index from the indexedVocabulary    
-for i in range(len(all_sentences[10])):
-    try:
-        print all_sentences[10][i].lower(), indexedVocabulary[all_sentences[10][i].lower()]
-    except:
-        continue
