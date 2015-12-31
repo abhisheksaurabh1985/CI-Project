@@ -89,6 +89,7 @@ def generateWordWindows(windowPadding, dictionaryIndex, listAllSentences, listAl
     listWindows = []
     for listItem in listListWindows:
         listWindows = listWindows + listItem
+
     # Test if the count of word windows matches the count of labels
     if len(listWindows) != len(listAllLabels):
         print "Error in dataset: Mismatch between the number of word windows and number of labels."
@@ -96,3 +97,17 @@ def generateWordWindows(windowPadding, dictionaryIndex, listAllSentences, listAl
         print "Total number of word windows equals the number of labels."
 
     return listListWindows, listWindows
+
+
+def generateWordVectors(wordVectorDimension, vocabWordMatrix, all_labels, windowPadding, listSentenceTuples):
+    m = len(listSentenceTuples)
+    contextSize = windowPadding* 2+ 1
+    n= wordVectorDimension* contextSize
+    trainingMatrix = np.zeros((m,n))
+    for indexWordWindow, wordWindow in enumerate(listSentenceTuples):
+        for indexWord, wordIndexInVocab in enumerate(wordWindow):
+            wordVec = vocabWordMatrix[:,wordIndexInVocab]
+            trainingMatrix[indexWordWindow, indexWord* wordVectorDimension: (indexWord + 1)* wordVectorDimension] = wordVec
+    return trainingMatrix, np.array(all_labels)
+    
+    
