@@ -19,7 +19,7 @@ wordVectorDimension = 50
 indexedVocabulary, vocabWordCount, vocabWordMatrix = generateWordMatrix(wordVectorFile, vocabularyFile)
 
 all_sentences, all_labels, lastSentence = getSentences(trainingDataFile)
-## print lastSentence
+print lastSentence
 
 windowPadding = 1
 ## contextSize = 3
