@@ -59,3 +59,5 @@ print 'Total number of elements: ', labelsAsMatrix.size
 ##
 
 ffn = nn.NeuralNetwork(150,40,1)
+ffn.feedForwardNetwork(training_matrix[0,0:])
+ffn.backPropagation(training_matrix,labelsAsMatrix,20)

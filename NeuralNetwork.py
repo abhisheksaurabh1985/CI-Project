@@ -35,12 +35,13 @@ class NeuralNetwork(object):
             # Initialize arrays for inputs
             self.inputLayerSize = inputLayerSize + 1 # add 1 for bias
             self.hiddenLayerSize = hiddenLayerSize
-            self. outputLayerSize = outputLayerSize
+            self.outputLayerSize = outputLayerSize
 
             # Set up array of 1s for activation
             self.ai = np.array([1.0] * self.inputLayerSize)
             self.ah = np.array([1.0] * self.hiddenLayerSize)
             self.ao = np.array([1.0] * self.outputLayerSize)
+
 
             # Random weights
             self.wi, self.wo = self.randomlyInitializeParameters()
@@ -58,29 +59,56 @@ class NeuralNetwork(object):
                 raise ValueError('Wrong number of inputs.')
 
             # input activations
-            for i in range(self.inputLayerSize - 1): # -1 is to avoid the bias
+            for i in range(self.inputLayerSize - 1): # -1 is to avoid the bias. Nope.
                 self.ai[i] = inputs[i]
             # Hidden activation
             sum_hidden_neurons = np.dot(self.ai.T, self.wi)
             # Apply neuron trigger function. ah is the output of the hidden neurons
-            self.ah = map(tanh, netj)
+            self.ah = np.array(map(tanh, sum_hidden_neurons)).T
+            self.ah = np.append(self.ah,1)
 
             # Output activation
             sum_output_neurons = np.dot(self.ah.T, self.wo)
             # Apply output neuron trigger function. ao is the output of the output layer
-            self.ao = map(sigmoid, outnetj)
+            self.ao = map(sigmoid, sum_output_neurons)
             return self.ao[:]
 
 
     def backPropagation(self, training_data, training_labels, number_of_epochs):
 
+        # Matrix of derivatives from the feedforward step for the k hidden units
+        D1 = np.zeros(shape=(self.hiddenLayerSize, self.hiddenLayerSize))
+        # Matrix of derivatives from the feedforward step for the m output units
+        D2 = np.zeros(shape=(self.outputLayerSize, self.outputLayerSize))
+
+        for epoch in range(number_of_epochs):
+
+            for data_sample in training_data:
+                # Feedforward computation stemp
+                self.feedForwardNetwork(data_sample)
+                # Store the derivatives
+                D1 = np.diag(map(tanhDerivative, self.ah[:-1]))
+                D2 = np.diag(map(sigmoidDerivative, self.ao))
+                #D1 = np.diag((self.ah).subtract())
+                # Derivatives of the quadratic deviations
+                #e = np.subtract(ao, training_labels)
+
+                W1 = self.wi[:-1,:]
+                W2 = self.wo[:-1,:]
+
+                o1 = self.ai
+
+
+                # backpropagated error up to the output units
+                #delta_out = np.dot(D2, e)
+
+                # backpropagated error up to the hidden layer
+                #delta_hidden = np.dot(D1)
+
         # Feedforward computation
         # Backpropagation to the output layer
         # Backpropagation to the hidden layer
         # Weight updates
-
-        for epoch in range(number_of_epochs):
-            
 
         return
 
@@ -98,7 +126,7 @@ class NeuralNetwork(object):
 
             # In the similar way randomly generate the weights for the connection between hidden and the output layer
             #weightsLayerTwo = np.random.random((self.outputLayerSize, self.hiddenLayerSize + 1)) * 2 * epsilon - epsilon
-            weightsLayerTwo = np.random.random((self.hiddenLayerSize, self.outputLayerSize + 1)) * 2 * epsilon - epsilon
+            weightsLayerTwo = np.random.random((self.hiddenLayerSize + 1, self.outputLayerSize)) * 2 * epsilon - epsilon
 
             return weightsLayerOne, weightsLayerTwo
 
