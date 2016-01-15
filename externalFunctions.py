@@ -21,15 +21,21 @@ def generateWordMatrix(fileWordVector, fileVocab):
 
 # Function creates sentences from the training set. Removes the labels associated with each word and appends the words to form a sentence, until word is an end-of-the-line
 # character.
-def getSentences(trainingDataFileName):
-
+def getSentences(strDataFileName):
+    """
+    Function creates sentences from the training/test dataset. Removes the labels associated with each word and appends the words to form a sentence, until word is an end-of-the-line
+    character.
+    Argument strDataFileName: File name of the training or test data.
+    Returns: 'all_sentences' in the dataset as a list; 'all_labels' corresponding to each word in all the sentences as a list; last sentence 'sentence' in the dataset if the sentence does
+    not end with an EOL character else null.
+    """
     # Define end-of line characters
     endOfLineCharacters = '.?!'
     # List to store sentences and labels corresponding to each word.
     allSentences = []
     allLabels = []
 
-    with open(trainingDataFileName, 'r') as fileObj:
+    with open(strDataFileName, 'r') as fileObj:
         sentence = []
         for line in fileObj:
             if len(line.split())== 2:
@@ -56,14 +62,22 @@ def getSentences(trainingDataFileName):
 
         return allSentences, allLabels, sentence    
 
-# Function returns a window of words formed from a sentence which shall be fed into the NN. To include the context of the first and the last word
-# of a sentence special start and end token, <s> and </s> is appended to every sentence. For each word window, the function returns the index from the
-# indexed dictionary created from the vocabulary by the function generateWordMatrix.
 def generateWordWindows(windowPadding, dictionaryIndex, listAllSentences, listAllLabels):
+    """
+    Function returns a window of words formed from a sentence which shall be fed into the NN. To include the context of the first and the last word of a sentence special start
+    and end token, <s> and </s> is appended to every sentence. For each word window, the function returns the index from the indexed dictionary created from the vocabulary by
+    the function generateWordMatrix.
+
+    Argument windowPadding: Number of words on either side of a word for which context is to be considered as an integer.
+    Argument dictionaryIndex: Dictionary of words in the vocabulary. Words as keys and index as values.
+    Argument listAllSentences: List containing all sentences in the dataset.
+    Argument listAllLabels: List containing labels for each word in the dataset.
+
+    Returns listListWindows: Word windows for each sentence as a nested list. Inner list contains the word windows for a sentence. 
+    Returns listWindows: Unpacked list of word windows.
+    """
     indexStartToken = dictionaryIndex['<s>']
-##    print indexStartToken
     indexEndToken = dictionaryIndex['</s>']
-##    print indexEndToken
     listListWindows = []
     for eachSentence in listAllSentences:
         lengthEachSentence = len(eachSentence)
