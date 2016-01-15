@@ -5,6 +5,7 @@ from collections import OrderedDict
 
 # Third party library
 import numpy as np
+import NeuralNetwork as nn
 
 # Path to the data files
 dataDirectory = "data/"
@@ -16,7 +17,7 @@ vocabularyFile = dataDirectory + "vocab_original.txt"
 wordVectorDimension = 50
 
 # Get index of the words in the vocabulary, count of words in the vocabulary and the word matrix from the vocabulary.
-# Each column of the word matrix corresponds to the vector representation of a word in the vocabulary. 
+# Each column of the word matrix corresponds to the vector representation of a word in the vocabulary.
 indexedVocabulary, vocabWordCount, vocabWordMatrix = generateWordMatrix(wordVectorFile, vocabularyFile)
 print 'Total number of words in the vocabulary: ', vocabWordCount
 print '\nProperties of vocabulary word matrix are as under:'
@@ -49,11 +50,12 @@ print 'Total number of elements: ', labelsAsMatrix.size
 # Test feed forward
 ##from NeuralNetwork import NeuralNetwork
 ##a= NeuralNetwork(len(listSentenceTuples), 100, 2)
-##a.feedForwardNetwork(listSentenceTuples)  
+##a.feedForwardNetwork(listSentenceTuples)
 
-##trainingData = 
+##trainingData =
 ##numberOfEpochs = 30
 ##for j in xrange(numberOfEpochs):
 ##    random.shuffle(trainingData)
 ##
 
+ffn = nn.NeuralNetwork(150,40,1)

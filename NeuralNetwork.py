@@ -33,23 +33,24 @@ class NeuralNetwork(object):
             Argument output: Number of output neurons
             """
             # Initialize arrays for inputs
-            self.inputLayerSize = inputLayerSize + 1 # add 1 for bias 
+            self.inputLayerSize = inputLayerSize + 1 # add 1 for bias
             self.hiddenLayerSize = hiddenLayerSize
             self. outputLayerSize = outputLayerSize
 
             # Set up array of 1s for activation
-            self.ai = [1.0] * self.inputLayerSize
-            self.ah = [1.0] * self.hiddenLayerSize
-            self.ao = [1.0] * self.outputLayerSize
+            self.ai = np.array([1.0] * self.inputLayerSize)
+            self.ah = np.array([1.0] * self.hiddenLayerSize)
+            self.ao = np.array([1.0] * self.outputLayerSize)
 
             # Random weights
             self.wi, self.wo = self.randomlyInitializeParameters()
-            
+
+
     def feedForwardNetwork(self, inputs):
             """
             Loops through each node of the hidden layer. Adds the output from input layer times weight. Hyperbolic tanh is used as an activation function at the hidden layer.
             Likewise, loops through each node of the output layer. Adds the output from the hidden layer times the weight of the edges from hidden node to the output node.
-            Sigmoid function is applied on this summation at each output node. 
+            Sigmoid function is applied on this summation at each output node.
             Argument inputs: input data
             Output argument: Updated activation output vector
             """
@@ -59,29 +60,36 @@ class NeuralNetwork(object):
             # input activations
             for i in range(self.inputLayerSize - 1): # -1 is to avoid the bias
                 self.ai[i] = inputs[i]
+            # Hidden activation
+            sum_hidden_neurons = np.dot(self.ai.T, self.wi)
+            # Apply neuron trigger function. ah is the output of the hidden neurons
+            self.ah = map(tanh, netj)
 
-            # hidden activations
-            for j in range(self.hiddenLayerSize): # For each node in hidden layer
-                sum = 0.0
-                for i in range(self.inputLayerSize): # For each input node
-                    sum += self.ai[i] * self.wi[i][j] # Find the summation of the product of input and weights from input node to hidden node 
-                self.ah[j] = tanh(sum) # Hyperbolic tanh is used as an activation function at the hidden layer.
+            # Output activation
+            sum_output_neurons = np.dot(self.ah.T, self.wo)
+            # Apply output neuron trigger function. ao is the output of the output layer
+            self.ao = map(sigmoid, outnetj)
+            return self.ao[:]
 
-            # output activations
-            for k in range(self.outputLayerSize): # For each node in output layer
-                sum = 0.0
-                for j in range(self.hiddenLayerSize): # For each node in hidden layer
-                    sum += self.ah[j] * self.wo[j][k] # Find the summation of the product of input and weights from hidden node to output node 
-                self.ao[k] = sigmoid(sum) # Sigmoid is used as an activation function at the output layer.
 
-            return self.ao[:]           
-                
+    def backPropagation(self, training_data, training_labels, number_of_epochs):
+
+        # Feedforward computation
+        # Backpropagation to the output layer
+        # Backpropagation to the hidden layer
+        # Weight updates
+
+        for epoch in range(number_of_epochs):
+            
+
+        return
+
     def randomlyInitializeParameters(self):
             epsilon = round(math.sqrt(6)/ math.sqrt(self.inputLayerSize + self.hiddenLayerSize),2)
 
             # Generate a random array of floats between 0 and 1
-            weightsLayerOne= np.random.random((self.hiddenLayerSize, self.inputLayerSize)) # 1 for bias in self.input has already been accounted in __init__ method.
-
+            #weightsLayerOne= np.random.random((self.hiddenLayerSize, self.inputLayerSize)) # 1 for bias in self.input has already been accounted in __init__ method.
+            weightsLayerOne= np.random.random((self.inputLayerSize, self.hiddenLayerSize)) # 1 for bias in self.input has already been accounted in __init__ method.
             # Normalize so that it spans a range of twice epsilon
             weightsLayerOne = weightsLayerOne * 2* epsilon
 
@@ -89,9 +97,10 @@ class NeuralNetwork(object):
             weightsLayerOne = weightsLayerOne - epsilon
 
             # In the similar way randomly generate the weights for the connection between hidden and the output layer
-            weightsLayerTwo = np.random.random((self.outputLayerSize, self.hiddenLayerSize + 1)) * 2 * epsilon - epsilon
+            #weightsLayerTwo = np.random.random((self.outputLayerSize, self.hiddenLayerSize + 1)) * 2 * epsilon - epsilon
+            weightsLayerTwo = np.random.random((self.hiddenLayerSize, self.outputLayerSize + 1)) * 2 * epsilon - epsilon
 
-            return weightsLayerOne, weightsLayerTwo		
+            return weightsLayerOne, weightsLayerTwo
 
     def SGD(self, trainingData, numberOfEpochs, miniBatchSize, learningRataEta, regularizationParamlambda= 0.0):
 
@@ -103,9 +112,3 @@ class NeuralNetwork(object):
                 for miniBatch in miniBatches:
                     self.updateMiniBatch(miniBatch, learningRateEta, regularizationParamlambda, len(trainingData))
                 print 'Epoch %s training complete' % j
-                
-        
-
-
-
-
