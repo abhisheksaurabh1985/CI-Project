@@ -28,6 +28,9 @@ def quadr_error_derivative(o, labels):
 def store_derivative(o):
     return o*(1-o)
 
+def quadr_error(o,y):
+    return (1.0/2)*np.power((o-y),2)
+
 class NeuralNetwork(object):
     """
     Consists of three layers: input, hidden and output. The size of hidden layer is user defined when initializing the network.
@@ -44,13 +47,15 @@ class NeuralNetwork(object):
             self.outputLayerSize = outputLayerSize
 
             # Set up array of 1s for activation
-            self.ai = np.array([[1.0] * self.inputLayerSize])
-            self.ah = np.array([[1.0] * self.hiddenLayerSize])
-            self.ao = np.array([[1.0] * self.outputLayerSize])
+            self.ai = np.array([1.0] * self.inputLayerSize)
+            self.ah = np.array([1.0] * self.hiddenLayerSize)
+            self.ao = np.array([1.0] * self.outputLayerSize)
 
 
             # Random weights
             self.wi, self.wo = self.randomlyInitializeParameters()
+
+            self.error_per_epoch = []
 
 
     def feedForwardNetwork(self, inputs):
@@ -68,15 +73,19 @@ class NeuralNetwork(object):
             for i in range(self.inputLayerSize - 1): # -1 is to avoid the bias. Nope.
                 self.ai[i] = inputs[i]
             # Hidden activation
-            sum_hidden_neurons = np.dot(self.ai.T, self.wi)
+            sum_hidden_neurons = np.dot(self.ai[:,None].T, self.wi)
             # Apply neuron trigger function. ah is the output of the hidden neurons
-            self.ah = np.array(map(tanh, sum_hidden_neurons)).T
+            # Vectorize is equivalent to map but in numpy
+            tanh_fun = np.vectorize(tanh)
+            self.ah = tanh_fun(sum_hidden_neurons)
+            #self.ah = np.array(map(tanh, sum_hidden_neurons)).T
             self.ah = np.append(self.ah,1)
 
             # Output activation
-            sum_output_neurons = np.dot(self.ah.T, self.wo)
+            sum_output_neurons = np.dot(self.ah[:,None].T, self.wo)
             # Apply output neuron trigger function. ao is the output of the output layer
-            self.ao = map(sigmoid, sum_output_neurons)
+            sigmoid_fun = np.vectorize(sigmoid)
+            self.ao = sigmoid_fun(sum_output_neurons)
             return self.ao[:]
 
 
@@ -87,8 +96,12 @@ class NeuralNetwork(object):
         # Matrix of derivatives from the feedforward step for the m output units
         D2 = np.zeros(shape=(self.outputLayerSize, self.outputLayerSize))
 
+        error_per_epoch = 0.0
         for epoch in range(number_of_epochs):
-            learning_rate = learning_rate / (epoch + 1)
+            #learning_rate = learning_rate / (epoch + 1)
+            print 'Epoch counter: {}'.format(epoch)
+            error = 0.0
+            error_per_epoch = []
 
             for data_sample, label_sample in zip(training_data,training_labels):
                 # Feedforward computation stemp
@@ -96,9 +109,12 @@ class NeuralNetwork(object):
                 self.feedForwardNetwork(data_sample)
                 # Store the derivatives
                 #D1 = np.diag(map(tanhDerivative, self.ah[:-1]))
-                D2 = np.diag(map(store_derivative, self.ao))
+                store_derivative_fun = np.vectorize(store_derivative)
+                store_tanh_derivative_fun = np.vectorize(tanhDerivative)
+
+                D2 = np.diag(store_derivative_fun(self.ao))
                 #D2 = np.diag(self.ao)
-                D1 = np.diag(map(store_derivative, self.ah[:-1]))
+                D1 = np.diag(store_tanh_derivative_fun(self.ah[:-1]))
                 #D2 = np.diag(derivatives_output)
                 #ah2 = self.ah[:-1,:]
                 #derivatives_hidden = map(store_derivative, self.ah2)
@@ -106,7 +122,9 @@ class NeuralNetwork(object):
 
                 # Derivatives of the quadratic deviations
                 # Figure out why it is nparray is iterable in feedforward and not this time.
+                qerr_derivative = np.vectorize(quadr_error_derivative)
                 e = np.array(map(quadr_error_derivative, self.ao, np.nditer(label_sample)))
+                e = np.array(qerr_derivative(self.ao, label_sample))
 
                 W1 = self.wi[:-1,:]
                 W2 = self.wo[:-1,:]
@@ -122,17 +140,30 @@ class NeuralNetwork(object):
                 #W2_correction = -learning_rate * np.dot(delta_output, self.ah.T)
                 ai = self.ai
                 ait = self.ai.transpose()
-                W1_correction = -learning_rate * np.dot(delta_hidden, ait)
+                W1_correction = -learning_rate * np.dot(delta_hidden[:,None], self.ai[:,None].T)
+                W2_correction = -learning_rate * np.dot(delta_output[:,None], self.ah[:,None].T)
+
+                # Now we adjust the weights
+                self.wi = self.wi + W1_correction.T
+                self.wo = self.wo + W2_correction.T
+
+                error += quadr_error(self.ao, label_sample)
                 # backpropagated error up to the output units
                 #delta_out = np.dot(D2, e)
 
                 # backpropagated error up to the hidden layer
                 #delta_hidden = np.dot(D1)
 
+            self.error_per_epoch.append(error)
+            print 'Error: {}'.format(error)
+
         # Feedforward computation
         # Backpropagation to the output layer
         # Backpropagation to the hidden layer
         # Weight updates
+
+       # training_error = error_per_epoch / number_of_epochs
+        #print 'training error: {}'.format(error_per_epoch)
 
         return
 

@@ -58,6 +58,6 @@ print 'Total number of elements: ', labelsAsMatrix.size
 ##    random.shuffle(trainingData)
 ##
 
-ffn = nn.NeuralNetwork(150,40,1)
-ffn.feedForwardNetwork(training_matrix[0,0:])
-ffn.backPropagation(training_matrix,labelsAsMatrix,20, 0.01)
+ffn = nn.NeuralNetwork(150,100,1)
+#ffn.feedForwardNetwork(training_matrix[0,0:])
+ffn.backPropagation(training_matrix,labelsAsMatrix,50, 0.01)
