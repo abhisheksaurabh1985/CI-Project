@@ -22,6 +22,12 @@ def tanh(x):
 def tanhDerivative(y):
     return (1- y*y)
 
+def quadr_error_derivative(o, labels):
+    return (np.subtract(o, labels))
+
+def store_derivative(o):
+    return o*(1-o)
+
 class NeuralNetwork(object):
     """
     Consists of three layers: input, hidden and output. The size of hidden layer is user defined when initializing the network.
@@ -38,9 +44,9 @@ class NeuralNetwork(object):
             self.outputLayerSize = outputLayerSize
 
             # Set up array of 1s for activation
-            self.ai = np.array([1.0] * self.inputLayerSize)
-            self.ah = np.array([1.0] * self.hiddenLayerSize)
-            self.ao = np.array([1.0] * self.outputLayerSize)
+            self.ai = np.array([[1.0] * self.inputLayerSize])
+            self.ah = np.array([[1.0] * self.hiddenLayerSize])
+            self.ao = np.array([[1.0] * self.outputLayerSize])
 
 
             # Random weights
@@ -74,7 +80,7 @@ class NeuralNetwork(object):
             return self.ao[:]
 
 
-    def backPropagation(self, training_data, training_labels, number_of_epochs):
+    def backPropagation(self, training_data, training_labels, number_of_epochs, learning_rate):
 
         # Matrix of derivatives from the feedforward step for the k hidden units
         D1 = np.zeros(shape=(self.hiddenLayerSize, self.hiddenLayerSize))
@@ -82,23 +88,41 @@ class NeuralNetwork(object):
         D2 = np.zeros(shape=(self.outputLayerSize, self.outputLayerSize))
 
         for epoch in range(number_of_epochs):
+            learning_rate = learning_rate / (epoch + 1)
 
-            for data_sample in training_data:
+            for data_sample, label_sample in zip(training_data,training_labels):
                 # Feedforward computation stemp
+                label_sample = np.array(label_sample)
                 self.feedForwardNetwork(data_sample)
                 # Store the derivatives
-                D1 = np.diag(map(tanhDerivative, self.ah[:-1]))
-                D2 = np.diag(map(sigmoidDerivative, self.ao))
-                #D1 = np.diag((self.ah).subtract())
+                #D1 = np.diag(map(tanhDerivative, self.ah[:-1]))
+                D2 = np.diag(map(store_derivative, self.ao))
+                #D2 = np.diag(self.ao)
+                D1 = np.diag(map(store_derivative, self.ah[:-1]))
+                #D2 = np.diag(derivatives_output)
+                #ah2 = self.ah[:-1,:]
+                #derivatives_hidden = map(store_derivative, self.ah2)
+                #D1 = np.diag(derivatives_hidden)
+
                 # Derivatives of the quadratic deviations
-                #e = np.subtract(ao, training_labels)
+                # Figure out why it is nparray is iterable in feedforward and not this time.
+                e = np.array(map(quadr_error_derivative, self.ao, np.nditer(label_sample)))
 
                 W1 = self.wi[:-1,:]
                 W2 = self.wo[:-1,:]
 
-                o1 = self.ai
 
 
+                # Backpropagated error up to the output units
+                delta_output = np.dot(D2, e)
+                # Backpropagated error up to the hidden layer
+                delta_hidden = np.dot(D1, W2)#, delta_output)
+                delta_hidden = np.dot(delta_hidden, delta_output)
+
+                #W2_correction = -learning_rate * np.dot(delta_output, self.ah.T)
+                ai = self.ai
+                ait = self.ai.transpose()
+                W1_correction = -learning_rate * np.dot(delta_hidden, ait)
                 # backpropagated error up to the output units
                 #delta_out = np.dot(D2, e)
 
