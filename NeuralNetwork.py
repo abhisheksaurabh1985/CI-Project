@@ -22,11 +22,20 @@ def tanh(x):
 def tanhDerivative(y):
     return (1- y*y)
 
+def tanhDerivativeVec(y):
+    return (1-np.multiply(y,y))
+
 def quadr_error_derivative(o, labels):
     return (np.subtract(o, labels))
 
+def quadr_error_derivative_vec(o,labels):
+    return (np.subtract(o,labels))
+
 def store_derivative(o):
     return o*(1-o)
+
+def store_derivative_vec(o):
+    return (np.multiply(o,1-o))
 
 def quadr_error(o,y):
     return (1.0/2)*np.power((o-y),2)
@@ -99,7 +108,7 @@ class NeuralNetwork(object):
         error_per_epoch = 0.0
         for epoch in range(number_of_epochs):
             #learning_rate = learning_rate / (epoch + 1)
-            print 'Epoch counter: {}'.format(epoch)
+            print 'Epoch counter: {}'.format(epoch+1)
             error = 0.0
             error_per_epoch = []
 
@@ -108,23 +117,23 @@ class NeuralNetwork(object):
                 label_sample = np.array(label_sample)
                 self.feedForwardNetwork(data_sample)
                 # Store the derivatives
-                #D1 = np.diag(map(tanhDerivative, self.ah[:-1]))
+
                 store_derivative_fun = np.vectorize(store_derivative)
                 store_tanh_derivative_fun = np.vectorize(tanhDerivative)
 
-                D2 = np.diag(store_derivative_fun(self.ao))
+                #D22 = np.diag(store_derivative_fun(self.ao))
+                D2 = np.diag(store_derivative_vec(self.ao))
                 #D2 = np.diag(self.ao)
-                D1 = np.diag(store_tanh_derivative_fun(self.ah[:-1]))
-                #D2 = np.diag(derivatives_output)
-                #ah2 = self.ah[:-1,:]
-                #derivatives_hidden = map(store_derivative, self.ah2)
-                #D1 = np.diag(derivatives_hidden)
+                #D11 = np.diag(store_tanh_derivative_fun(self.ah[:-1]))
+                D1 = np.diag(tanhDerivativeVec(self.ah[:-1]))
+
 
                 # Derivatives of the quadratic deviations
                 # Figure out why it is nparray is iterable in feedforward and not this time.
                 qerr_derivative = np.vectorize(quadr_error_derivative)
-                e = np.array(map(quadr_error_derivative, self.ao, np.nditer(label_sample)))
+                #e = np.array(map(quadr_error_derivative, self.ao, np.nditer(label_sample)))
                 e = np.array(qerr_derivative(self.ao, label_sample))
+                e2 = quadr_error_derivative_vec(self.ao, np.array([float(label_sample)] * self.outputLayerSize))
 
                 W1 = self.wi[:-1,:]
                 W2 = self.wo[:-1,:]
@@ -138,8 +147,7 @@ class NeuralNetwork(object):
                 delta_hidden = np.dot(delta_hidden, delta_output)
 
                 #W2_correction = -learning_rate * np.dot(delta_output, self.ah.T)
-                ai = self.ai
-                ait = self.ai.transpose()
+
                 W1_correction = -learning_rate * np.dot(delta_hidden[:,None], self.ai[:,None].T)
                 W2_correction = -learning_rate * np.dot(delta_output[:,None], self.ah[:,None].T)
 
@@ -154,8 +162,8 @@ class NeuralNetwork(object):
                 # backpropagated error up to the hidden layer
                 #delta_hidden = np.dot(D1)
 
-            self.error_per_epoch.append(error)
-            print 'Error: {}'.format(error)
+            self.error_per_epoch.append(self.insample_error(training_data, training_labels))
+            #print 'Error: {}'.format(self.error_per_epoch)
 
         # Feedforward computation
         # Backpropagation to the output layer
@@ -166,6 +174,19 @@ class NeuralNetwork(object):
         #print 'training error: {}'.format(error_per_epoch)
 
         return
+
+    def insample_error(self, training_data, training_labels):
+
+        sample_error = []
+        for data_sample, label_sample in zip(training_data, training_labels):
+            self.feedForwardNetwork(data_sample)
+            sample_error.append(quadr_error(self.ao, label_sample))
+
+        error = (1.0)*(np.sum(sample_error))#/(len(training_labels)))
+
+        return error
+
+
 
     def randomlyInitializeParameters(self):
             epsilon = round(math.sqrt(6)/ math.sqrt(self.inputLayerSize + self.hiddenLayerSize),2)

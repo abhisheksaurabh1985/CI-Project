@@ -4,8 +4,9 @@ execfile('./NeuralNetwork.py')
 from collections import OrderedDict
 
 # Third party library
-import numpy as np
+#import numpy as np
 import NeuralNetwork as nn
+import matplotlib.pyplot as plt
 
 # Path to the data files
 dataDirectory = "data/"
@@ -60,4 +61,8 @@ print 'Total number of elements: ', labelsAsMatrix.size
 
 ffn = nn.NeuralNetwork(150,100,1)
 #ffn.feedForwardNetwork(training_matrix[0,0:])
-ffn.backPropagation(training_matrix,labelsAsMatrix,50, 0.01)
+ffn.backPropagation(training_matrix,labelsAsMatrix,20, 0.01)
+
+plt.plot(ffn.error_per_epoch)
+plt.show()
+
