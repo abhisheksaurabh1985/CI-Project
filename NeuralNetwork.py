@@ -65,6 +65,7 @@ class NeuralNetwork(object):
             self.wi, self.wo = self.randomlyInitializeParameters()
 
             self.error_per_epoch = []
+            self.costf_per_epoch = []
 
 
     def feedForwardNetwork(self, inputs):
@@ -110,6 +111,7 @@ class NeuralNetwork(object):
             #learning_rate = learning_rate / (epoch + 1)
             print 'Epoch counter: {}'.format(epoch+1)
             error = 0.0
+            cost = []
             error_per_epoch = []
 
             for data_sample, label_sample in zip(training_data,training_labels):
@@ -129,24 +131,22 @@ class NeuralNetwork(object):
 
 
                 # Derivatives of the quadratic deviations
-                # Figure out why it is nparray is iterable in feedforward and not this time.
                 qerr_derivative = np.vectorize(quadr_error_derivative)
                 #e = np.array(map(quadr_error_derivative, self.ao, np.nditer(label_sample)))
                 e = np.array(qerr_derivative(self.ao, label_sample))
                 e2 = quadr_error_derivative_vec(self.ao, np.array([float(label_sample)] * self.outputLayerSize))
 
-                W1 = self.wi[:-1,:]
-                W2 = self.wo[:-1,:]
+                #W1 = self.wi[:-1,:]
+                #W2 = self.wo[:-1,:]
 
 
 
                 # Backpropagated error up to the output units
                 delta_output = np.dot(D2, e)
                 # Backpropagated error up to the hidden layer
-                delta_hidden = np.dot(D1, W2)#, delta_output)
+                #delta_hidden = np.dot(D1, W2)#, delta_output)
+                delta_hidden = np.dot(D1, self.wo[:-1,:])#, delta_output)
                 delta_hidden = np.dot(delta_hidden, delta_output)
-
-                #W2_correction = -learning_rate * np.dot(delta_output, self.ah.T)
 
                 W1_correction = -learning_rate * np.dot(delta_hidden[:,None], self.ai[:,None].T)
                 W2_correction = -learning_rate * np.dot(delta_output[:,None], self.ah[:,None].T)
@@ -156,13 +156,15 @@ class NeuralNetwork(object):
                 self.wo = self.wo + W2_correction.T
 
                 error += quadr_error(self.ao, label_sample)
+                cost.append(self.costWithoutRegularization(self.ao, label_sample))
                 # backpropagated error up to the output units
                 #delta_out = np.dot(D2, e)
 
                 # backpropagated error up to the hidden layer
                 #delta_hidden = np.dot(D1)
 
-            self.error_per_epoch.append(self.insample_error(training_data, training_labels))
+            #self.error_per_epoch.append(self.insample_error(training_data, training_labels))
+            self.costf_per_epoch.append(np.sum(cost))
             #print 'Error: {}'.format(self.error_per_epoch)
 
         # Feedforward computation
@@ -206,6 +208,7 @@ class NeuralNetwork(object):
 
             return weightsLayerOne, weightsLayerTwo
 
+
     def SGD(self, trainingData, numberOfEpochs, miniBatchSize, learningRataEta, regularizationParamlambda= 0.0):
 
             lengthTrainingData = len(trainingData)
@@ -216,3 +219,26 @@ class NeuralNetwork(object):
                 for miniBatch in miniBatches:
                     self.updateMiniBatch(miniBatch, learningRateEta, regularizationParamlambda, len(trainingData))
                 print 'Epoch %s training complete' % j
+
+
+
+    def costWithoutRegularization(self, predictedOutput, actualOutput):
+        """
+        Returns the cost associated with an output prediction.
+        np.nan_to_num is used to ensure numerical stability.  If both 'predictedOutput' and 'actualOutput' have a 1.0 in the same
+        slot, then the expression (1-actualOutput)*np.log(1-predictedOutput) returns 'nan'.  The np.nan_to_num ensures that 'nan'
+        is converted to the correct value (0.0).
+        Argument predictedOutput: Output predicted by the network.
+        Argument actualOutput: Actual output
+        """
+        return np.sum(np.nan_to_num(-actualOutput*np.log(predictedOutput)-(1-actualOutput)*np.log(1-predictedOutput)))
+
+
+
+    def costWithRegularization(self, paramlambda, predictedOutput, actualOutput):
+
+        J = self.costWithoutRegularization(predictedOutput, actualOutput)
+        # np.linalg.norm squares each element in an ndarray row and returns the sum of that row.
+        regularizationTerm = (paramlambda/ (2*m)) * [sum(np.linalg.norm(w)**2 for w in self.wi) + sum(np.linalg.norm(u)**2 for u in self.wo)]
+        totalCost = J + regularizationTerm
+        return totalCost

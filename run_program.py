@@ -61,8 +61,8 @@ print 'Total number of elements: ', labelsAsMatrix.size
 
 ffn = nn.NeuralNetwork(150,100,1)
 #ffn.feedForwardNetwork(training_matrix[0,0:])
-ffn.backPropagation(training_matrix,labelsAsMatrix,20, 0.01)
+ffn.backPropagation(training_matrix,labelsAsMatrix,1000, 0.01)
 
-plt.plot(ffn.error_per_epoch)
+plt.plot(ffn.costf_per_epoch)
 plt.show()
 
