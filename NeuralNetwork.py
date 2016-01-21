@@ -220,15 +220,15 @@ class NeuralNetwork(object):
         return totalCost
 
 
-    def gradientChecking(self, training_data, training_labels, epsilon= 10**-4, errorThreshold = 10**-5):
+    def gradientChecking(self, training_data, training_labels, learning_rate, epsilon= 10**-4, errorThreshold = 10**-5):
         '''
         Source: http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-2-implementing-a-language-model-rnn-with-python-numpy-and-theano/
         '''
         # Get the gradients from backpropagation
-        dW,dU = self.backPropagation(training_data, training_labels)
+        dW,dU = self.backPropagation(training_data[0,:], training_labels[0], learning_rate)
         gradientsFromBackProp = [dW,dU]
         # List of parameters gradient wrt which is to checked
-        modelParameters =  ['W' 'U']
+        modelParameters =  ['W','U']
         for idx, param in enumerate(modelParameters):
             # Get the actual parameter from the model self.wi, self.wo etc.
             if param == 'W':
@@ -244,23 +244,28 @@ class NeuralNetwork(object):
             while not it.finished:
                 index = it.multi_index
                 # Save the original value of the parameter so that it can be reset later
+                originalParameter = parameter.copy()
                 originalValue = parameter[index]
 
                 # Gradient for this parameter from backpropagation algorithm
                 gradientFromBPA = gradientsFromBackProp[idx][index]
 
                 # Gradient calculation using (J(theta + epsilon)- J(theta - epsilon))/(2*h)
+                #parameter[index]= originalValue + epsilon
                 parameter[index]= originalValue + epsilon
-                gradientPlus = self.costWithRegularization(x, y) # Doubt in the params which have to be passed.
+                self.feedForwardNetwork(training_data[0,:])
+                gradientPlus = self.costWithoutRegularization(self.ao, training_labels[0]) # Doubt in the params which have to be passed.
+                #np.copyto(parameter, originalParameter)
                 parameter[index]= originalValue - epsilon
-                gradientMinus = self.costWithRegularization([], []) # Doubt in the params which have to be passed.
-                estimatedGradient = (gradientPlus - gradientMinus)/ (2*h)
+                self.feedForwardNetwork(training_data[0,:])
+                gradientMinus = self.costWithoutRegularization(self.ao, training_labels[0]) # Doubt in the params which have to be passed.
+                estimatedGradient = (gradientPlus - gradientMinus)/ (2*epsilon)
 
                 # Reset parameter to original value
                 parameter[index]= originalValue
 
                 # Relative error: (|x - y|/(|x| + |y|))
-                relativeError = np.abs(gradientFromBPA - estimatedGradient) / (np.abs(gradientFromBPA) + np.abs(estimatedGradient))
+                relativeError = np.abs(gradientFromBPA - estimatedGradient)# / (np.abs(gradientFromBPA) + np.abs(estimatedGradient))
 
                 if relativeError >= errorThreshold:
                     print "Gradient Check ERROR: parameter=%s ix=%s" % (param, index)
@@ -269,5 +274,6 @@ class NeuralNetwork(object):
                     print "Estimated_gradient: %f" % estimatedGradient
                     print "Backpropagation gradient: %f" % gradientFromBPA
                     print "Relative Error: %f" % relativeError
-                    return it.iternext()
+
+                it.iternext()
             print "Gradient check for parameter %s passed." % (pname)
