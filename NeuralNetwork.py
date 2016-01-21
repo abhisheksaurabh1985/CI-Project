@@ -99,15 +99,8 @@ class NeuralNetwork(object):
             return self.ao[:]
 
 
-    def backPropagation(self, training_data, training_labels, number_of_epochs, learning_rate):
+    def SGDbackProp(self, training_data, training_labels, number_of_epochs, learning_rate):
 
-        # Matrix of derivatives from the feedforward step for the k hidden units
-        D1 = np.zeros(shape=(self.hiddenLayerSize, self.hiddenLayerSize))
-        # Matrix of derivatives from the feedforward step for the m output units
-        D2 = np.zeros(shape=(self.outputLayerSize, self.outputLayerSize))
-
-        max_learning_rate = learning_rate
-        error_per_epoch = 0.0
         for epoch in range(number_of_epochs):
             #learning_rate = learning_rate / (epoch + 1)
             print 'Epoch counter: {}'.format(epoch+1)
@@ -116,67 +109,59 @@ class NeuralNetwork(object):
             error_per_epoch = []
 
             for data_sample, label_sample in zip(training_data,training_labels):
-                # Feedforward computation stemp
-                label_sample = np.array(label_sample)
-                self.feedForwardNetwork(data_sample)
-                # Store the derivatives
 
-                store_derivative_fun = np.vectorize(store_derivative)
-                store_tanh_derivative_fun = np.vectorize(tanhDerivative)
-
-                #D22 = np.diag(store_derivative_fun(self.ao))
-                D2 = np.diag(store_derivative_vec(self.ao))
-                #D2 = np.diag(self.ao)
-                #D11 = np.diag(store_tanh_derivative_fun(self.ah[:-1]))
-                D1 = np.diag(tanhDerivativeVec(self.ah[:-1]))
-
-
-                # Derivatives of the quadratic deviations
-                qerr_derivative = np.vectorize(quadr_error_derivative)
-                #e = np.array(map(quadr_error_derivative, self.ao, np.nditer(label_sample)))
-                e = np.array(qerr_derivative(self.ao, label_sample))
-                e2 = quadr_error_derivative_vec(self.ao, np.array([float(label_sample)] * self.outputLayerSize))
-
-                #W1 = self.wi[:-1,:]
-                #W2 = self.wo[:-1,:]
-
-
-
-                # Backpropagated error up to the output units
-                delta_output = np.dot(D2, e)
-                # Backpropagated error up to the hidden layer
-                #delta_hidden = np.dot(D1, W2)#, delta_output)
-                delta_hidden = np.dot(D1, self.wo[:-1,:])#, delta_output)
-                delta_hidden = np.dot(delta_hidden, delta_output)
-
-                W1_correction = -learning_rate * np.dot(delta_hidden[:,None], self.ai[:,None].T)
-                W2_correction = -learning_rate * np.dot(delta_output[:,None], self.ah[:,None].T)
-
+                W1_correction, W2_correction = self.backPropagation(data_sample, label_sample, learning_rate)
                 # Now we adjust the weights
-                self.wi = self.wi + W1_correction.T
-                self.wo = self.wo + W2_correction.T
+                self.wi = self.wi + W1_correction
+                self.wo = self.wo + W2_correction
 
                 error += quadr_error(self.ao, label_sample)
                 cost.append(self.costWithoutRegularization(self.ao, label_sample))
-                # backpropagated error up to the output units
-                #delta_out = np.dot(D2, e)
 
-                # backpropagated error up to the hidden layer
-                #delta_hidden = np.dot(D1)
+                error += quadr_error(self.ao, label_sample)
+                cost.append(self.costWithoutRegularization(self.ao, label_sample))
 
-            #self.error_per_epoch.append(self.insample_error(training_data, training_labels))
             self.costf_per_epoch.append(np.sum(cost)/len(training_labels))
             print 'cost function per epoch: {}'.format(self.costf_per_epoch[-1])
 
-        # Feedforward computation
-        # Backpropagation to the output layer
-        # Backpropagation to the hidden layer
-        # Weight updates
-
-       # training_error = error_per_epoch / number_of_epochs
-        #print 'training error: {}'.format(error_per_epoch)
 
         return
+
+
+    def backPropagation(self, data_sample, label_sample, learning_rate):
+
+        #Matrix notation of the backpropagation algorithm from "Neural Networks" Raul Rojas
+
+        # Matrix of derivatives from the feedforward step for the k hidden units
+        D1 = np.zeros(shape=(self.hiddenLayerSize, self.hiddenLayerSize))
+        # Matrix of derivatives from the feedforward step for the m output units
+        D2 = np.zeros(shape=(self.outputLayerSize, self.outputLayerSize))
+
+
+         # Feedforward computation stemp
+        label_sample = np.array(label_sample)
+        self.feedForwardNetwork(data_sample)
+        # Store the derivatives
+        D2 = np.diag(store_derivative_vec(self.ao))
+        D1 = np.diag(tanhDerivativeVec(self.ah[:-1]))
+
+
+        # Derivatives of the quadratic deviations
+        qerr_derivative = np.vectorize(quadr_error_derivative)
+        e = np.array(qerr_derivative(self.ao, label_sample))
+
+        # Backpropagated error up to the output units
+        delta_output = np.dot(D2, e)
+        # Backpropagated error up to the hidden layer
+        delta_hidden = np.dot(D1, self.wo[:-1,:])#, delta_output)
+        delta_hidden = np.dot(delta_hidden, delta_output)
+
+        W1_correction = -learning_rate * np.dot(delta_hidden[:,None], self.ai[:,None].T)
+        W2_correction = -learning_rate * np.dot(delta_output[:,None], self.ah[:,None].T)
+
+        return W1_correction.T, W2_correction.T
+
+
 
     def insample_error(self, training_data, training_labels):
 
@@ -240,15 +225,16 @@ class NeuralNetwork(object):
         Source: http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-2-implementing-a-language-model-rnn-with-python-numpy-and-theano/
         '''
         # Get the gradients from backpropagation
-        gradientsFromBackProp = self.backPropagation(training_data, training_labels)
+        dW,dU = self.backPropagation(training_data, training_labels)
+        gradientsFromBackProp = [dW,dU]
         # List of parameters gradient wrt which is to checked
-        modelParameters =  ['L', 'W', 'b1', 'U', 'b2']
+        modelParameters =  ['W' 'U']
         for idx, param in enumerate(modelParameters):
             # Get the actual parameter from the model self.wi, self.wo etc.
             if param == 'W':
-                parameter = self.wi
+                parameter = self.wi[:-1,:]
             elif param == 'U':
-                parameter = self.wo
+                parameter = self.wo[:-1,:]
             print 'Performing gradient check for parameter %s with size %d.' % (param, np.prod(parameter.shape))
 
             # flags = ['multi_index'] allows indexing into the iterator. Hence, it allows using the index of the current element in computation.
