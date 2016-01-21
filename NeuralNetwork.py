@@ -114,7 +114,6 @@ class NeuralNetwork(object):
             error = 0.0
             cost = []
             error_per_epoch = []
-            learning_rate = (1.0)*max_learning_rate / (epoch+1)
 
             for data_sample, label_sample in zip(training_data,training_labels):
                 # Feedforward computation stemp
