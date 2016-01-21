@@ -112,8 +112,8 @@ class NeuralNetwork(object):
 
                 W1_correction, W2_correction = self.backPropagation(data_sample, label_sample, learning_rate)
                 # Now we adjust the weights
-                self.wi = self.wi + W1_correction
-                self.wo = self.wo + W2_correction
+                self.wi = self.wi - learning_rate * W1_correction
+                self.wo = self.wo - learning_rate * W2_correction
 
                 error += quadr_error(self.ao, label_sample)
                 cost.append(self.costWithoutRegularization(self.ao, label_sample))
@@ -156,8 +156,8 @@ class NeuralNetwork(object):
         delta_hidden = np.dot(D1, self.wo[:-1,:])#, delta_output)
         delta_hidden = np.dot(delta_hidden, delta_output)
 
-        W1_correction = -learning_rate * np.dot(delta_hidden[:,None], self.ai[:,None].T)
-        W2_correction = -learning_rate * np.dot(delta_output[:,None], self.ah[:,None].T)
+        W1_correction = np.dot(delta_hidden[:,None], self.ai[:,None].T)
+        W2_correction = np.dot(delta_output[:,None], self.ah[:,None].T)
 
         return W1_correction.T, W2_correction.T
 
@@ -276,4 +276,4 @@ class NeuralNetwork(object):
                     print "Relative Error: %f" % relativeError
 
                 it.iternext()
-            print "Gradient check for parameter %s passed." % (pname)
+            #print "Gradient check for parameter %s passed." % (pname)
