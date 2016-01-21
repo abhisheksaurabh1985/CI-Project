@@ -123,5 +123,16 @@ def generateWordVectors(wordVectorDimension, vocabWordMatrix, all_labels, window
             wordVec = vocabWordMatrix[:,wordIndexInVocab]
             trainingMatrix[indexWordWindow, indexWord* wordVectorDimension: (indexWord + 1)* wordVectorDimension] = wordVec
     return trainingMatrix, np.array(all_labels)
+
+
+def testSentence(nn, sentence_windows):
+
+    tagged_words = []
+
+    for window in sentence_windows:
+        nn.feedForwardNetwork(window)
+        tagged_words.append(1 if nn.ao>0.5 else 0)
+
+    return tagged_words
     
     
