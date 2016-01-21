@@ -106,6 +106,7 @@ class NeuralNetwork(object):
         # Matrix of derivatives from the feedforward step for the m output units
         D2 = np.zeros(shape=(self.outputLayerSize, self.outputLayerSize))
 
+        max_learning_rate = learning_rate
         error_per_epoch = 0.0
         for epoch in range(number_of_epochs):
             #learning_rate = learning_rate / (epoch + 1)
@@ -113,6 +114,7 @@ class NeuralNetwork(object):
             error = 0.0
             cost = []
             error_per_epoch = []
+            learning_rate = (1.0)*max_learning_rate / (epoch+1)
 
             for data_sample, label_sample in zip(training_data,training_labels):
                 # Feedforward computation stemp
@@ -164,8 +166,8 @@ class NeuralNetwork(object):
                 #delta_hidden = np.dot(D1)
 
             #self.error_per_epoch.append(self.insample_error(training_data, training_labels))
-            self.costf_per_epoch.append(np.sum(cost))
-            #print 'Error: {}'.format(self.error_per_epoch)
+            self.costf_per_epoch.append(np.sum(cost)/len(training_labels))
+            print 'cost function per epoch: {}'.format(self.costf_per_epoch[-1])
 
         # Feedforward computation
         # Backpropagation to the output layer
@@ -209,16 +211,6 @@ class NeuralNetwork(object):
             return weightsLayerOne, weightsLayerTwo
 
 
-    def SGD(self, trainingData, numberOfEpochs, miniBatchSize, learningRataEta, regularizationParamlambda= 0.0):
-
-            lengthTrainingData = len(trainingData)
-
-            for i in xrange(numberOfEpochs):
-                random.shuffle(trainingData)
-                miniBatches = [trainingData[k: k + miniBatchSize] for k in xrange(0, n, miniBatchSize)]
-                for miniBatch in miniBatches:
-                    self.updateMiniBatch(miniBatch, learningRateEta, regularizationParamlambda, len(trainingData))
-                print 'Epoch %s training complete' % j
 
 
 
@@ -242,3 +234,55 @@ class NeuralNetwork(object):
         regularizationTerm = (paramlambda/ (2*m)) * [sum(np.linalg.norm(w)**2 for w in self.wi) + sum(np.linalg.norm(u)**2 for u in self.wo)]
         totalCost = J + regularizationTerm
         return totalCost
+
+
+    def gradientChecking(self, training_data, training_labels, epsilon= 10**-4, errorThreshold = 10**-5):
+        '''
+        Source: http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-2-implementing-a-language-model-rnn-with-python-numpy-and-theano/
+        '''
+        # Get the gradients from backpropagation
+        gradientsFromBackProp = self.backPropagation(training_data, training_labels)
+        # List of parameters gradient wrt which is to checked
+        modelParameters =  ['L', 'W', 'b1', 'U', 'b2']
+        for idx, param in enumerate(modelParameters):
+            # Get the actual parameter from the model self.wi, self.wo etc.
+            if param == 'W':
+                parameter = self.wi
+            elif param == 'U':
+                parameter = self.wo
+            print 'Performing gradient check for parameter %s with size %d.' % (param, np.prod(parameter.shape))
+
+            # flags = ['multi_index'] allows indexing into the iterator. Hence, it allows using the index of the current element in computation.
+            # op_flags = ['readwrite'] allows modifying the current element. By default, nditer treats the input array as read only object.
+            it = np.nditer(parameter, flags = ['multi_index'], op_flags = ['readwrite'])
+
+            while not it.finished:
+                index = it.multi_index
+                # Save the original value of the parameter so that it can be reset later
+                originalValue = parameter[index]
+
+                # Gradient for this parameter from backpropagation algorithm
+                gradientFromBPA = gradientsFromBackProp[idx][index]
+
+                # Gradient calculation using (J(theta + epsilon)- J(theta - epsilon))/(2*h)
+                parameter[index]= originalValue + epsilon
+                gradientPlus = self.costWithRegularization(x, y) # Doubt in the params which have to be passed.
+                parameter[index]= originalValue - epsilon
+                gradientMinus = self.costWithRegularization([], []) # Doubt in the params which have to be passed.
+                estimatedGradient = (gradientPlus - gradientMinus)/ (2*h)
+
+                # Reset parameter to original value
+                parameter[index]= originalValue
+
+                # Relative error: (|x - y|/(|x| + |y|))
+                relativeError = np.abs(gradientFromBPA - estimatedGradient) / (np.abs(gradientFromBPA) + np.abs(estimatedGradient))
+
+                if relativeError >= errorThreshold:
+                    print "Gradient Check ERROR: parameter=%s ix=%s" % (param, index)
+                    print "+h Loss: %f" % gradientPlus
+                    print "-h Loss: %f" % gradientMinus
+                    print "Estimated_gradient: %f" % estimatedGradient
+                    print "Backpropagation gradient: %f" % gradientFromBPA
+                    print "Relative Error: %f" % relativeError
+                    return it.iternext()
+            print "Gradient check for parameter %s passed." % (pname)
