@@ -48,12 +48,56 @@ def quadr_error(o,y):
     return (1.0/2)*np.power((o-y),2)
 
 
+class quadraticErrorJ(object):
+
+    @staticmethod
+    def evaluate(actualOutput,predictedOutput):
+
+        return (1.0/2)*np.power((predictedOutput-actualOutput),2)
+
+    @staticmethod
+    def evaluate_derivative(actualOutput, predictedOutput):
+        '''
+
+        :param o: output of the neural network
+        :param labels: labels of the given data
+        :return: evaluation of the derivative
+        '''
+        return (np.divide(np.subtract(predictedOutput,actualOutput), (np.multiply(predictedOutput, (1-predictedOutput)))))
+        return (np.subtract(o, labels))
+
+
+
+class cxEntropyJ(object):
+
+    @staticmethod
+    def evaluate(actualOutput,predictedOutput):
+        """
+        Returns the cost associated with an output prediction.
+        np.nan_to_num is used to ensure numerical stability.  If both 'predictedOutput' and 'actualOutput' have a 1.0 in the same
+        slot, then the expression (1-actualOutput)*np.log(1-predictedOutput) returns 'nan'.  The np.nan_to_num ensures that 'nan'
+        is converted to the correct value (0.0).
+        Argument predictedOutput: Output predicted by the network.
+        Argument actualOutput: Actual output
+        """
+        return np.sum(np.nan_to_num(-actualOutput*np.log(predictedOutput)-(1-actualOutput)*np.log(1-predictedOutput)))
+
+    @staticmethod
+    def evaluate_derivative(actualOutput, predictedOutput):
+        '''
+
+        :param o: output of the neural network
+        :param labels: labels of the given data
+        :return: evaluation of the derivative
+        '''
+        return (np.divide(np.subtract(predictedOutput,actualOutput), (np.multiply(predictedOutput, (1-predictedOutput)))))
+
 
 class NeuralNetwork(object):
     """
     Consists of three layers: input, hidden and output. The size of hidden layer is user defined when initializing the network.
     """
-    def __init__(self, inputLayerSize, hiddenLayerSize, outputLayerSize):
+    def __init__(self, inputLayerSize, hiddenLayerSize, outputLayerSize, costFunction=cxEntropyJ):
             """
             Argument input: Number of input neurons
             Argument hidden: Number of hidden neurons
@@ -68,6 +112,9 @@ class NeuralNetwork(object):
             self.ai = np.array([1.0] * self.inputLayerSize)
             self.ah = np.array([1.0] * self.hiddenLayerSize)
             self.ao = np.array([1.0] * self.outputLayerSize)
+
+            # Cost function for the network
+            self.costFunction = costFunction
 
 
             # Random weights
@@ -136,7 +183,8 @@ class NeuralNetwork(object):
                 self.wo = self.wo - learning_rate * W2_correction
 
                 error += quadr_error(self.ao, label_sample)
-                cost.append(self.costWithoutRegularization(self.ao, label_sample))
+                #cost.append(self.costWithoutRegularization(self.ao, label_sample))
+                cost.append(self.costFunction.evaluate(label_sample, self.ao))
 
 
             self.costf_per_epoch.append(np.sum(cost)/len(training_labels))
@@ -161,8 +209,8 @@ class NeuralNetwork(object):
 
 
         # Derivatives of the cost function with respect to the output units
-        cxentropy_derivative = np.vectorize(cross_entropy_derivative)
-        e = np.array(cxentropy_derivative(self.ao, label_sample))
+        derivative_J_output = np.vectorize(self.costFunction.evaluate_derivative)
+        e = np.array(derivative_J_output(label_sample, self.ao))
 
         # Backpropagated error up to the output units
         delta_output = np.dot(D2, e)
@@ -252,11 +300,13 @@ class NeuralNetwork(object):
                     # Modify parameter with +epsilon and compute the cost function
                     parameter[index]= originalValue + epsilon
                     self.feedForwardNetwork(training_sample)
-                    costPlus = self.costWithoutRegularization(self.ao, training_label)
+                    costPlus = self.costFunction.evaluate(training_label, self.ao)
+
                     # Modify parameter with -epsilon and compute cost function
                     parameter[index]= originalValue - epsilon
                     self.feedForwardNetwork(training_sample)
-                    costMinus = self.costWithoutRegularization(self.ao, training_label)
+                    costMinus = self.costFunction.evaluate(training_label, self.ao)
+
 
                     estimatedGradient = (costPlus - costMinus)/ (2*epsilon)
 

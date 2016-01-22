@@ -15,9 +15,9 @@ with open('./data_dump/objs.pickle_train_small') as f:
 
 
 ffn = nn.NeuralNetwork(150,200,1)
-ffn.SGDbackProp(training_matrix, labelsAsMatrix,20, 0.01)
+ffn.SGDbackProp(training_matrix, labelsAsMatrix,200, 0.01)
 
-with open('./output/objs.pickle_nn_300_small', 'w') as f:
+with open('./output/objs.pickle_nn_200_small', 'w') as f:
     pickle.dump(ffn, f)
 
 
