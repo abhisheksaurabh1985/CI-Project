@@ -134,5 +134,32 @@ def testSentence(nn, sentence_windows):
         tagged_words.append(1 if nn.ao>0.5 else 0)
 
     return tagged_words
+
+
+
+def getLabelsForeachWordInSentence(all_sentences, all_labels):
+    '''
+    Returns labels for each word in the sentence.
+    INPUT ARGUMENTS:
+    all_sentences: Nested list containing sentences present in the dataset. Sentences in this list are tokenized.
+    all_labels: List containing the labels for each word in the dataset.
+    OUTPUT ARGUMENTS:
+    length_sentences: List containing the length of each sentence in the dataset.
+    labels_each_word_sentence: Nested list with each inner list item containing the labels for words in the corresponding sentence in all_sentences.
+    '''
+    length_sentences = []
+    for each in all_sentences:
+	length_sentences.append(len(each))
+
+    labels_each_word_sentence = []
+    countTokens = 0
+    startIndex = 0
+    ##endIndex = lengthSentence[0]
+    tokenCount = 0
+    for i in range(len(all_sentences)):
+        tokenCount = tokenCount + length_sentences[i]
+        labels_each_word_sentence.append(all_labels[startIndex: tokenCount])
+        startIndex = tokenCount
+    return length_sentences, labels_each_word_sentence
     
     

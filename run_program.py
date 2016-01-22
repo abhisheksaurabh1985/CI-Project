@@ -6,11 +6,11 @@ import pickle
 # Third party library
 #import numpy as np
 import NeuralNetwork as nn
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 
 
-with open('objs.pickle_train') as f:
+with open('./data_dump/objs.pickle_train') as f:
     training_matrix, labelsAsMatrix = pickle.load(f)
 
 
