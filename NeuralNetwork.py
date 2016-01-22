@@ -14,8 +14,8 @@ def sigmoid(x):
     return 1/ (1 + np.exp(-x))
 
 ## Derivative of sigmoid to be used in Backpropagation algorithm.
-def sigmoidDerivative(y):
-    return y* (1- y)
+def sigmoidDerivative(o):
+    return (np.multiply(o,1-o))
 
 ## Hyperbolic tanh function for the hidden layer
 def tanh(x):
@@ -31,7 +31,7 @@ def quadr_error_derivative(o, labels):
     return (np.subtract(o, labels))
 
 
-def cross_entropy_error(o, labels):
+def cross_entropy_derivative(o, labels):
     return (np.divide(np.subtract(o,labels), (np.multiply(o, (1-o)))))
 
 def store_derivative(o):
@@ -46,6 +46,8 @@ def delta(o, y):
 
 def quadr_error(o,y):
     return (1.0/2)*np.power((o-y),2)
+
+
 
 class NeuralNetwork(object):
     """
@@ -71,7 +73,6 @@ class NeuralNetwork(object):
             # Random weights
             self.wi, self.wo = self.randomlyInitializeParameters()
 
-            self.error_per_epoch = []
             self.costf_per_epoch = []
 
 
@@ -108,12 +109,24 @@ class NeuralNetwork(object):
 
     def SGDbackProp(self, training_data, training_labels, number_of_epochs, learning_rate):
 
+        '''
+        Stochastic Gradient Descent Backpropagation Algorithm.
+
+
+        :param training_data:
+        :param training_labels:
+        :param number_of_epochs:
+        :param learning_rate:
+        :return:
+        '''
+
+
         for epoch in range(number_of_epochs):
             #learning_rate = learning_rate / (epoch + 1)
             print 'Epoch counter: {}'.format(epoch+1)
             error = 0.0
             cost = []
-            error_per_epoch = []
+
 
             for data_sample, label_sample in zip(training_data,training_labels):
 
@@ -125,8 +138,6 @@ class NeuralNetwork(object):
                 error += quadr_error(self.ao, label_sample)
                 cost.append(self.costWithoutRegularization(self.ao, label_sample))
 
-                error += quadr_error(self.ao, label_sample)
-                cost.append(self.costWithoutRegularization(self.ao, label_sample))
 
             self.costf_per_epoch.append(np.sum(cost)/len(training_labels))
             print 'cost function per epoch: {}'.format(self.costf_per_epoch[-1])
@@ -139,40 +150,31 @@ class NeuralNetwork(object):
 
         #Matrix notation of the backpropagation algorithm from "Neural Networks" Raul Rojas
 
-        # Matrix of derivatives from the feedforward step for the k hidden units
-        D1 = np.zeros(shape=(self.hiddenLayerSize, self.hiddenLayerSize))
-        # Matrix of derivatives from the feedforward step for the m output units
-        D2 = np.zeros(shape=(self.outputLayerSize, self.outputLayerSize))
 
-
-         # Feedforward computation stemp
+         # Feedforward computation step
         label_sample = np.array(label_sample)
         self.feedForwardNetwork(data_sample)
-        # Store the derivatives
-        D2 = np.diag(store_derivative_vec(self.ao))
-        #D2 = np.diag(np.ones(self.ao.shape))
+        # Store the derivatives of output units
+        D2 = np.diag(sigmoidDerivative(self.ao))
+        # Store the derivatives of hidden units
         D1 = np.diag(tanhDerivativeVec(self.ah[:-1]))
 
 
-        # Derivatives of the quadratic deviations
-        qerr_derivative = np.vectorize(quadr_error_derivative)
-        cxentropy_derivative = np.vectorize(cross_entropy_error)
-        #e = np.array(qerr_derivative(self.ao, label_sample))
+        # Derivatives of the cost function with respect to the output units
+        cxentropy_derivative = np.vectorize(cross_entropy_derivative)
         e = np.array(cxentropy_derivative(self.ao, label_sample))
 
         # Backpropagated error up to the output units
         delta_output = np.dot(D2, e)
         # Backpropagated error up to the hidden layer
-        delta_hidden = np.dot(D1, self.wo[:-1,:])#, delta_output)
+        delta_hidden = np.dot(D1, self.wo[:-1,:])
         delta_hidden = np.dot(delta_hidden, delta_output)
 
+        # Gradient of the cost function with respect to the weights of output and hidden units
         W1_correction = np.dot(delta_hidden[:,None], self.ai[:,None].T)
         W2_correction = np.dot(delta_output[:,None], self.ah[:,None].T)
 
         return W1_correction.T, W2_correction.T
-
-
-
 
 
 
@@ -193,8 +195,6 @@ class NeuralNetwork(object):
             weightsLayerTwo = np.random.random((self.hiddenLayerSize + 1, self.outputLayerSize)) * 2 * epsilon - epsilon
 
             return weightsLayerOne, weightsLayerTwo
-
-
 
 
 
@@ -238,30 +238,26 @@ class NeuralNetwork(object):
                     parameter = self.wo#[:-1,:]
                 print 'Performing gradient check for parameter %s with size %d.' % (param, np.prod(parameter.shape))
 
-                # flags = ['multi_index'] allows indexing into the iterator. Hence, it allows using the index of the current element in computation.
-                # op_flags = ['readwrite'] allows modifying the current element. By default, nditer treats the input array as read only object.
                 it = np.nditer(parameter, flags = ['multi_index'], op_flags = ['readwrite'])
 
                 while not it.finished:
                     index = it.multi_index
                     # Save the original value of the parameter so that it can be reset later
-                    originalParameter = parameter.copy()
                     originalValue = parameter[index]
 
                     # Gradient for this parameter from backpropagation algorithm
                     gradientFromBPA = gradientsFromBackProp[idx][index]
 
                     # Gradient calculation using (J(theta + epsilon)- J(theta - epsilon))/(2*h)
-                    #parameter[index]= originalValue + epsilon
+                    # Modify parameter with +epsilon and compute the cost function
                     parameter[index]= originalValue + epsilon
                     self.feedForwardNetwork(training_sample)
-                    costPlus = self.costWithoutRegularization(self.ao, training_label) # Doubt in the params which have to be passed.
-                    #costPlus = quadr_error(self.ao, training_label)
-                    #np.copyto(parameter, originalParameter)
+                    costPlus = self.costWithoutRegularization(self.ao, training_label)
+                    # Modify parameter with -epsilon and compute cost function
                     parameter[index]= originalValue - epsilon
                     self.feedForwardNetwork(training_sample)
-                    costMinus = self.costWithoutRegularization(self.ao, training_label) # Doubt in the params which have to be passed.
-                    #costMinus = quadr_error(self.ao, training_label)
+                    costMinus = self.costWithoutRegularization(self.ao, training_label)
+
                     estimatedGradient = (costPlus - costMinus)/ (2*epsilon)
 
                     # Reset parameter to original value
