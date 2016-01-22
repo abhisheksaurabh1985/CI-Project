@@ -93,6 +93,8 @@ class cxEntropyJ(object):
         return (np.divide(np.subtract(predictedOutput,actualOutput), (np.multiply(predictedOutput, (1-predictedOutput)))))
 
 
+
+
 class NeuralNetwork(object):
     """
     Consists of three layers: input, hidden and output. The size of hidden layer is user defined when initializing the network.
@@ -143,7 +145,7 @@ class NeuralNetwork(object):
             # Vectorize is equivalent to map but in numpy
             tanh_fun = np.vectorize(tanh)
             self.ah = tanh_fun(sum_hidden_neurons)
-            #self.ah = np.array(map(tanh, sum_hidden_neurons)).T
+            # Added input for bias term in hidden units
             self.ah = np.append(self.ah,1)
 
             # Output activation
@@ -154,7 +156,7 @@ class NeuralNetwork(object):
             return self.ao[:]
 
 
-    def SGDbackProp(self, training_data, training_labels, number_of_epochs, learning_rate):
+    def SGDbackProp(self, training_data, training_labels, number_of_epochs, learning_rate, lambda_reg=0):
 
         '''
         Stochastic Gradient Descent Backpropagation Algorithm.
@@ -171,25 +173,21 @@ class NeuralNetwork(object):
         for epoch in range(number_of_epochs):
             #learning_rate = learning_rate / (epoch + 1)
             print 'Epoch counter: {}'.format(epoch+1)
-            error = 0.0
             cost = []
 
 
             for data_sample, label_sample in zip(training_data,training_labels):
 
-                W1_correction, W2_correction = self.backPropagation(data_sample, label_sample, learning_rate)
+                dW1, dW2 = self.backPropagation(data_sample, label_sample, learning_rate)
                 # Now we adjust the weights
-                self.wi = self.wi - learning_rate * W1_correction
-                self.wo = self.wo - learning_rate * W2_correction
+                self.wi = self.wi - learning_rate * dW1
+                self.wo = self.wo - learning_rate * dW2
 
-                error += quadr_error(self.ao, label_sample)
-                #cost.append(self.costWithoutRegularization(self.ao, label_sample))
                 cost.append(self.costFunction.evaluate(label_sample, self.ao))
 
 
             self.costf_per_epoch.append(np.sum(cost)/len(training_labels))
             print 'cost function per epoch: {}'.format(self.costf_per_epoch[-1])
-
 
         return
 
@@ -219,10 +217,10 @@ class NeuralNetwork(object):
         delta_hidden = np.dot(delta_hidden, delta_output)
 
         # Gradient of the cost function with respect to the weights of output and hidden units
-        W1_correction = np.dot(delta_hidden[:,None], self.ai[:,None].T)
-        W2_correction = np.dot(delta_output[:,None], self.ah[:,None].T)
+        dW1 = np.dot(delta_hidden[:,None], self.ai[:,None].T)
+        dW2 = np.dot(delta_output[:,None], self.ah[:,None].T)
 
-        return W1_correction.T, W2_correction.T
+        return dW1.T, dW2.T
 
 
 
@@ -349,5 +347,5 @@ class NeuralNetwork(object):
         '''
 
         # average = None, implies that  scores of both the classes will be returned.
-        result = precision_recall_fscore_support(yhat, y, average=None)
+        result = precision_recall_fscore_support(yPredicted, yActual, average=None)
         return result

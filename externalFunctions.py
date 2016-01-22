@@ -1,3 +1,6 @@
+from sklearn.metrics import precision_recall_fscore_support
+
+
 def generateWordMatrix(fileWordVector, fileVocab):
     indexVocabulary = OrderedDict()
     ##def generateWordMatrix(wordVectorFile, vocabularyFile):
@@ -163,3 +166,21 @@ def getLabelsForeachWordInSentence(all_sentences, all_labels):
     return length_sentences, labels_each_word_sentence
     
     
+
+def getPrecisionRecallSupport(nn, test_samples, yActual):
+    '''
+    Function returns the precision, recall and F1 score for both the groups i.e. PERSON_NAME and NON_PERSON_NAME.
+    INPUT ARGUMENT:
+    yPredicted: List containing the predicted label for each word.
+    yActual: List containing the actual label for each word.
+
+    OUTPUT ARGUMENT:
+    result: Tuple containing the precision, recall, fscore and support for both the negative and the positive class. Each tuple element is a numpy array. Four such arrays in total,
+    one each for precision, recall, fscore and support respectively. First element of each of the numpy array is the score for the negative class.
+    '''
+
+    yActual = yActual.tolist()
+    yPredicted = testSentence(nn, test_samples)
+    # average = None, implies that  scores of both the classes will be returned.
+    result = precision_recall_fscore_support(yPredicted, yActual, average=None)
+    return result
