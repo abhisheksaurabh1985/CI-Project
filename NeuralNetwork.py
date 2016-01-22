@@ -268,7 +268,7 @@ class NeuralNetwork(object):
                     parameter[index]= originalValue
 
                     # Relative error: (|x - y|/(|x| + |y|))
-                    relativeError = np.abs(gradientFromBPA - estimatedGradient)# / (np.abs(gradientFromBPA) + np.abs(estimatedGradient))
+                    relativeError = np.abs(gradientFromBPA - estimatedGradient) / (np.abs(gradientFromBPA) + np.abs(estimatedGradient))
 
                     if relativeError >= errorThreshold:
                         print "Gradient Check ERROR: parameter=%s ix=%s" % (param, index)
@@ -280,3 +280,5 @@ class NeuralNetwork(object):
 
                     it.iternext()
                     print "Gradient check for parameter {}_{} passed.".format(param, index)
+                    print 'Estimated gradient: {}'.format(estimatedGradient)
+                    print 'Gradient from BPA: {}'.format(gradientFromBPA)
