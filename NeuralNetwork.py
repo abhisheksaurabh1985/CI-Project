@@ -225,55 +225,58 @@ class NeuralNetwork(object):
         Source: http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-2-implementing-a-language-model-rnn-with-python-numpy-and-theano/
         '''
         # Get the gradients from backpropagation
-        dW,dU = self.backPropagation(training_data[0,:], training_labels[0], learning_rate)
-        gradientsFromBackProp = [dW,dU]
-        # List of parameters gradient wrt which is to checked
-        modelParameters =  ['W','U']
-        for idx, param in enumerate(modelParameters):
-            # Get the actual parameter from the model self.wi, self.wo etc.
-            if param == 'W':
-                parameter = self.wi[:-1,:]
-            elif param == 'U':
-                parameter = self.wo[:-1,:]
-            print 'Performing gradient check for parameter %s with size %d.' % (param, np.prod(parameter.shape))
+        for training_sample, training_label in zip(training_data, training_labels):
+            dW,dU = self.backPropagation(training_sample, training_label, learning_rate)
+            gradientsFromBackProp = [dW,dU]
+            # List of parameters gradient wrt which is to checked
+            modelParameters =  ['W','U']
+            for idx, param in enumerate(modelParameters):
+                # Get the actual parameter from the model self.wi, self.wo etc.
+                if param == 'W':
+                    parameter = self.wi#[:-1,:]
+                elif param == 'U':
+                    parameter = self.wo#[:-1,:]
+                print 'Performing gradient check for parameter %s with size %d.' % (param, np.prod(parameter.shape))
 
-            # flags = ['multi_index'] allows indexing into the iterator. Hence, it allows using the index of the current element in computation.
-            # op_flags = ['readwrite'] allows modifying the current element. By default, nditer treats the input array as read only object.
-            it = np.nditer(parameter, flags = ['multi_index'], op_flags = ['readwrite'])
+                # flags = ['multi_index'] allows indexing into the iterator. Hence, it allows using the index of the current element in computation.
+                # op_flags = ['readwrite'] allows modifying the current element. By default, nditer treats the input array as read only object.
+                it = np.nditer(parameter, flags = ['multi_index'], op_flags = ['readwrite'])
 
-            while not it.finished:
-                index = it.multi_index
-                # Save the original value of the parameter so that it can be reset later
-                originalParameter = parameter.copy()
-                originalValue = parameter[index]
+                while not it.finished:
+                    index = it.multi_index
+                    # Save the original value of the parameter so that it can be reset later
+                    originalParameter = parameter.copy()
+                    originalValue = parameter[index]
 
-                # Gradient for this parameter from backpropagation algorithm
-                gradientFromBPA = gradientsFromBackProp[idx][index]
+                    # Gradient for this parameter from backpropagation algorithm
+                    gradientFromBPA = gradientsFromBackProp[idx][index]
 
-                # Gradient calculation using (J(theta + epsilon)- J(theta - epsilon))/(2*h)
-                #parameter[index]= originalValue + epsilon
-                parameter[index]= originalValue + epsilon
-                self.feedForwardNetwork(training_data[0,:])
-                gradientPlus = self.costWithoutRegularization(self.ao, training_labels[0]) # Doubt in the params which have to be passed.
-                #np.copyto(parameter, originalParameter)
-                parameter[index]= originalValue - epsilon
-                self.feedForwardNetwork(training_data[0,:])
-                gradientMinus = self.costWithoutRegularization(self.ao, training_labels[0]) # Doubt in the params which have to be passed.
-                estimatedGradient = (gradientPlus - gradientMinus)/ (2*epsilon)
+                    # Gradient calculation using (J(theta + epsilon)- J(theta - epsilon))/(2*h)
+                    #parameter[index]= originalValue + epsilon
+                    parameter[index]= originalValue + epsilon
+                    self.feedForwardNetwork(training_sample)
+                    #gradientPlus = self.costWithoutRegularization(self.ao, training_labels[0]) # Doubt in the params which have to be passed.
+                    costPlus = quadr_error(self.ao, training_label)
+                    #np.copyto(parameter, originalParameter)
+                    parameter[index]= originalValue - epsilon
+                    self.feedForwardNetwork(training_sample)
+                    #gradientMinus = self.costWithoutRegularization(self.ao, training_labels[0]) # Doubt in the params which have to be passed.
+                    costMinus = quadr_error(self.ao, training_label)
+                    estimatedGradient = (costPlus - costMinus)/ (2*epsilon)
 
-                # Reset parameter to original value
-                parameter[index]= originalValue
+                    # Reset parameter to original value
+                    parameter[index]= originalValue
 
-                # Relative error: (|x - y|/(|x| + |y|))
-                relativeError = np.abs(gradientFromBPA - estimatedGradient)# / (np.abs(gradientFromBPA) + np.abs(estimatedGradient))
+                    # Relative error: (|x - y|/(|x| + |y|))
+                    relativeError = np.abs(gradientFromBPA - estimatedGradient)# / (np.abs(gradientFromBPA) + np.abs(estimatedGradient))
 
-                if relativeError >= errorThreshold:
-                    print "Gradient Check ERROR: parameter=%s ix=%s" % (param, index)
-                    print "+h Loss: %f" % gradientPlus
-                    print "-h Loss: %f" % gradientMinus
-                    print "Estimated_gradient: %f" % estimatedGradient
-                    print "Backpropagation gradient: %f" % gradientFromBPA
-                    print "Relative Error: %f" % relativeError
+                    if relativeError >= errorThreshold:
+                        print "Gradient Check ERROR: parameter=%s ix=%s" % (param, index)
+                        print "+h Loss: %f" % costPlus
+                        print "-h Loss: %f" % costMinus
+                        print "Estimated_gradient: %f" % estimatedGradient
+                        print "Backpropagation gradient: %f" % gradientFromBPA
+                        print "Relative Error: %f" % relativeError
 
-                it.iternext()
-            #print "Gradient check for parameter %s passed." % (pname)
+                    it.iternext()
+                    print "Gradient check for parameter {}_{} passed.".format(param, index)
