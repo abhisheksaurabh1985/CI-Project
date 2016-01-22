@@ -30,14 +30,19 @@ def tanhDerivativeVec(y):
 def quadr_error_derivative(o, labels):
     return (np.subtract(o, labels))
 
-def quadr_error_derivative_vec(o,labels):
-    return (np.subtract(o,labels))
+
+def cross_entropy_error(o, labels):
+    return (np.divide(np.subtract(o,labels), (np.multiply(o, (1-o)))))
 
 def store_derivative(o):
     return o*(1-o)
 
 def store_derivative_vec(o):
     return (np.multiply(o,1-o))
+
+def delta(o, y):
+    return(o-y)
+
 
 def quadr_error(o,y):
     return (1.0/2)*np.power((o-y),2)
@@ -145,12 +150,15 @@ class NeuralNetwork(object):
         self.feedForwardNetwork(data_sample)
         # Store the derivatives
         D2 = np.diag(store_derivative_vec(self.ao))
+        #D2 = np.diag(np.ones(self.ao.shape))
         D1 = np.diag(tanhDerivativeVec(self.ah[:-1]))
 
 
         # Derivatives of the quadratic deviations
         qerr_derivative = np.vectorize(quadr_error_derivative)
-        e = np.array(qerr_derivative(self.ao, label_sample))
+        cxentropy_derivative = np.vectorize(cross_entropy_error)
+        #e = np.array(qerr_derivative(self.ao, label_sample))
+        e = np.array(cxentropy_derivative(self.ao, label_sample))
 
         # Backpropagated error up to the output units
         delta_output = np.dot(D2, e)
@@ -165,16 +173,6 @@ class NeuralNetwork(object):
 
 
 
-    def insample_error(self, training_data, training_labels):
-
-        sample_error = []
-        for data_sample, label_sample in zip(training_data, training_labels):
-            self.feedForwardNetwork(data_sample)
-            sample_error.append(quadr_error(self.ao, label_sample))
-
-        error = (1.0)*(np.sum(sample_error))#/(len(training_labels)))
-
-        return error
 
 
 
@@ -257,13 +255,13 @@ class NeuralNetwork(object):
                     #parameter[index]= originalValue + epsilon
                     parameter[index]= originalValue + epsilon
                     self.feedForwardNetwork(training_sample)
-                    #gradientPlus = self.costWithoutRegularization(self.ao, training_labels[0]) # Doubt in the params which have to be passed.
-                    costPlus = quadr_error(self.ao, training_label)
+                    costPlus = self.costWithoutRegularization(self.ao, training_label) # Doubt in the params which have to be passed.
+                    #costPlus = quadr_error(self.ao, training_label)
                     #np.copyto(parameter, originalParameter)
                     parameter[index]= originalValue - epsilon
                     self.feedForwardNetwork(training_sample)
-                    #gradientMinus = self.costWithoutRegularization(self.ao, training_labels[0]) # Doubt in the params which have to be passed.
-                    costMinus = quadr_error(self.ao, training_label)
+                    costMinus = self.costWithoutRegularization(self.ao, training_label) # Doubt in the params which have to be passed.
+                    #costMinus = quadr_error(self.ao, training_label)
                     estimatedGradient = (costPlus - costMinus)/ (2*epsilon)
 
                     # Reset parameter to original value
@@ -273,17 +271,22 @@ class NeuralNetwork(object):
                     relativeError = np.abs(gradientFromBPA - estimatedGradient) / (np.abs(gradientFromBPA) + np.abs(estimatedGradient))
 
                     if relativeError >= errorThreshold:
+                        print "**************************"
                         print "Gradient Check ERROR: parameter=%s ix=%s" % (param, index)
                         print "+h Loss: %f" % costPlus
                         print "-h Loss: %f" % costMinus
                         print "Estimated_gradient: %f" % estimatedGradient
                         print "Backpropagation gradient: %f" % gradientFromBPA
                         print "Relative Error: %f" % relativeError
+                        print "**************************"
+
+                    else:
+                        print "Gradient check for parameter {}_{} passed.".format(param, index)
+                        print 'Estimated gradient: {}'.format(estimatedGradient)
+                        print 'Gradient from BPA: {}'.format(gradientFromBPA)
 
                     it.iternext()
-                    print "Gradient check for parameter {}_{} passed.".format(param, index)
-                    print 'Estimated gradient: {}'.format(estimatedGradient)
-                    print 'Gradient from BPA: {}'.format(gradientFromBPA)
+
 
 
 

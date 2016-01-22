@@ -2,7 +2,7 @@ import NeuralNetwork as nn
 import pickle
 import numpy as np
 
-with open('objs.pickle_train_small') as f:
+with open('./data_dump/objs.pickle_train_small') as f:
     training_matrix, labelsAsMatrix = pickle.load(f)
 
 
