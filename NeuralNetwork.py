@@ -80,6 +80,10 @@ class cxEntropyJ(object):
         Argument predictedOutput: Output predicted by the network.
         Argument actualOutput: Actual output
         """
+
+        # Same issue found in evaluate_derivative
+        if predictedOutput == 1:
+            predictedOutput = 1 - 10**-7
         cost = np.sum(np.nan_to_num(-actualOutput*np.log(predictedOutput)-(1-actualOutput)*np.log(1-predictedOutput)))
         reg_term = ((1.0)*lambda_reg/2) * ((np.square(wi[:-1,:])).sum() + np.square(wo[:-1,:]).sum())
         cost += reg_term
@@ -95,8 +99,16 @@ class cxEntropyJ(object):
         :return: evaluation of the derivative
         '''
 
-        cx_entropy_derivative = np.divide(np.subtract(predictedOutput,actualOutput), (np.multiply(predictedOutput,
-                                            (1-predictedOutput))))
+        #cx_entropy_derivative = np.divide(np.subtract(predictedOutput,actualOutput), (np.multiply(predictedOutput,
+        #                                    (1-predictedOutput))))
+
+        # Problem in divison! We know that the denominator is the derivative of the output of the unit.
+        # When dividing directly we can have problems when the output is exactly one (division by zero) and
+        # end up with the weights getting values -nan due to the substraction of the gradient
+        # The way I implemented the network I can't find a way to fix this. It is not a propper fix.
+        if predictedOutput==1:
+            predictedOutput = 1 - 10**-7
+        cx_entropy_derivative = np.divide(np.subtract(predictedOutput,actualOutput), sigmoidDerivative(predictedOutput))
 
         return cx_entropy_derivative
 

@@ -31,7 +31,7 @@ with open('./data_dump/objs.pickle_test') as f:
 
 learning_rates = np.logspace(-3,1,10)
 regularization_terms = np.logspace(-3, -1, 10)
-number_epochs = range(1,11)
+number_epochs = range(1,5)
 number_hidden_units = range(50,151)
 
 number_trials = [10]#,20,30,40,50,100]
@@ -53,6 +53,13 @@ for trials in number_trials:
         hyp_parameters = [learning_rate, regularization_term,
                           number_epoch, hidden_units]
 
+
+        print 'Values of hyperparameters:'
+        print 'learning rate: {}'.format(learning_rate)
+        print 'regularization term: {}'.format(regularization_term)
+        print 'number of epochs: {}'.format(number_epoch)
+        print 'hidden units: {}'.format(hidden_units)
+
         # Train
         nn = NeuralNetwork.NeuralNetwork(150, hidden_units, 1)
         nn.SGDbackProp(dataset_data, dataset_labels,number_epoch,
@@ -65,6 +72,7 @@ for trials in number_trials:
 
         validation_metrics.append(externalFunctions.getPrecisionRecallSupport(nn, validation_data, validation_labels))
         hyp_parameters_list.append(hyp_parameters)
+        print 'Validation precision for person: {}'.format(validation_metrics[-1][0][1])
 
 
 
