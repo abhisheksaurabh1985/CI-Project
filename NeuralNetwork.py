@@ -71,7 +71,7 @@ class quadraticErrorJ(object):
 class cxEntropyJ(object):
 
     @staticmethod
-    def evaluate(actualOutput,predictedOutput):
+    def evaluate(actualOutput,predictedOutput, wi, wo, lambda_reg):
         """
         Returns the cost associated with an output prediction.
         np.nan_to_num is used to ensure numerical stability.  If both 'predictedOutput' and 'actualOutput' have a 1.0 in the same
@@ -80,17 +80,44 @@ class cxEntropyJ(object):
         Argument predictedOutput: Output predicted by the network.
         Argument actualOutput: Actual output
         """
-        return np.sum(np.nan_to_num(-actualOutput*np.log(predictedOutput)-(1-actualOutput)*np.log(1-predictedOutput)))
+        cost = np.sum(np.nan_to_num(-actualOutput*np.log(predictedOutput)-(1-actualOutput)*np.log(1-predictedOutput)))
+        reg_term = ((1.0)*lambda_reg/2) * ((np.square(wi[:-1,:])).sum() + np.square(wo[:-1,:]).sum())
+        cost += reg_term
+
+        return cost
 
     @staticmethod
-    def evaluate_derivative(actualOutput, predictedOutput):
+    def evaluate_derivative(actualOutput, predictedOutput):#, wi, wo, lambda_reg):
         '''
 
         :param o: output of the neural network
         :param labels: labels of the given data
         :return: evaluation of the derivative
         '''
-        return (np.divide(np.subtract(predictedOutput,actualOutput), (np.multiply(predictedOutput, (1-predictedOutput)))))
+
+        cx_entropy_derivative = np.divide(np.subtract(predictedOutput,actualOutput), (np.multiply(predictedOutput,
+                                            (1-predictedOutput))))
+
+        return cx_entropy_derivative
+
+    @staticmethod
+    def reg_derivative(wi,wo,lambda_reg):
+
+        dw1 = np.zeros(wi.shape)
+        dw2 = np.zeros(wo.shape)
+        dw1[:-1,:] = ((1.0)*lambda_reg)*(wi[:-1,:])
+        dw2[:-1,:] = ((1.0)*lambda_reg)*(wo[:-1,:])
+        return dw1,dw2
+
+    # @staticmethod
+    # def regularization_term(wi,wo,lambda_reg):
+    #     reg_term_wi = np.zeros(wi.shape)
+    #     reg_term_wo = np.zeros(wo.shape)
+    #
+    #     reg_term_wi[:-1,:] = wi[:-1,:] * lambda_reg/(reg_term_wi[:-1,:].size)
+    #     reg_term_wo[:-1,:] = wo[:-1,:] * lambda_reg/(reg_term_wo[:-1,:].size)
+    #     return reg_term_wi, reg_term_wo
+
 
 
 
@@ -156,7 +183,10 @@ class NeuralNetwork(object):
             return self.ao[:]
 
 
-    def SGDbackProp(self, training_data, training_labels, number_of_epochs, learning_rate, lambda_reg=0):
+    def SGDbackProp(self, training_data, training_labels, number_of_epochs,
+                    learning_rate,
+                    lambda_reg=0,
+                    monitor=False):
 
         '''
         Stochastic Gradient Descent Backpropagation Algorithm.
@@ -178,12 +208,12 @@ class NeuralNetwork(object):
 
             for data_sample, label_sample in zip(training_data,training_labels):
 
-                dW1, dW2 = self.backPropagation(data_sample, label_sample, learning_rate)
+                dW1, dW2 = self.backPropagation(data_sample, label_sample, learning_rate, lambda_reg)
                 # Now we adjust the weights
                 self.wi = self.wi - learning_rate * dW1
                 self.wo = self.wo - learning_rate * dW2
 
-                cost.append(self.costFunction.evaluate(label_sample, self.ao))
+                cost.append(self.costFunction.evaluate(label_sample, self.ao,self.wi,self.wo,lambda_reg))
 
 
             self.costf_per_epoch.append(np.sum(cost)/len(training_labels))
@@ -192,7 +222,7 @@ class NeuralNetwork(object):
         return
 
 
-    def backPropagation(self, data_sample, label_sample, learning_rate):
+    def backPropagation(self, data_sample, label_sample, learning_rate, lambda_reg=0):
 
         #Matrix notation of the backpropagation algorithm from "Neural Networks" Raul Rojas
 
@@ -216,11 +246,13 @@ class NeuralNetwork(object):
         delta_hidden = np.dot(D1, self.wo[:-1,:])
         delta_hidden = np.dot(delta_hidden, delta_output)
 
-        # Gradient of the cost function with respect to the weights of output and hidden units
-        dW1 = np.dot(delta_hidden[:,None], self.ai[:,None].T)
-        dW2 = np.dot(delta_output[:,None], self.ah[:,None].T)
+        dw1, dw2 = self.costFunction.reg_derivative(self.wi, self.wo, lambda_reg)
 
-        return dW1.T, dW2.T
+        # Gradient of the cost function with respect to the weights of output and hidden units
+        dW1 = np.dot(delta_hidden[:,None], self.ai[:,None].T).T + dw1
+        dW2 = np.dot(delta_output[:,None], self.ah[:,None].T).T + dw2
+
+        return dW1, dW2
 
 
 
@@ -266,13 +298,13 @@ class NeuralNetwork(object):
         return totalCost
 
 
-    def gradientChecking(self, training_data, training_labels, learning_rate, epsilon= 10**-4, errorThreshold = 10**-5):
+    def gradientChecking(self, training_data, training_labels, learning_rate, lambda_reg=0, epsilon= 10**-4, errorThreshold = 10**-5):
         '''
         Source: http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-2-implementing-a-language-model-rnn-with-python-numpy-and-theano/
         '''
         # Get the gradients from backpropagation
         for training_sample, training_label in zip(training_data, training_labels):
-            dW,dU = self.backPropagation(training_sample, training_label, learning_rate)
+            dW,dU = self.backPropagation(training_sample, training_label, learning_rate, lambda_reg)
             gradientsFromBackProp = [dW,dU]
             # List of parameters gradient wrt which is to checked
             modelParameters =  ['W','U']
@@ -298,12 +330,12 @@ class NeuralNetwork(object):
                     # Modify parameter with +epsilon and compute the cost function
                     parameter[index]= originalValue + epsilon
                     self.feedForwardNetwork(training_sample)
-                    costPlus = self.costFunction.evaluate(training_label, self.ao)
+                    costPlus = self.costFunction.evaluate(training_label, self.ao,self.wi,self.wo,lambda_reg)
 
                     # Modify parameter with -epsilon and compute cost function
                     parameter[index]= originalValue - epsilon
                     self.feedForwardNetwork(training_sample)
-                    costMinus = self.costFunction.evaluate(training_label, self.ao)
+                    costMinus = self.costFunction.evaluate(training_label, self.ao,self.wi, self.wo, lambda_reg)
 
 
                     estimatedGradient = (costPlus - costMinus)/ (2*epsilon)
