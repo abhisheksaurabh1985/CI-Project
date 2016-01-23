@@ -83,7 +83,7 @@ class cxEntropyJ(object):
 
         # Same issue found in evaluate_derivative
         if predictedOutput == 1:
-            predictedOutput = 1 - 10**-7
+            predictedOutput = 1 - 10**-6
         cost = np.sum(np.nan_to_num(-actualOutput*np.log(predictedOutput)-(1-actualOutput)*np.log(1-predictedOutput)))
         reg_term = ((1.0)*lambda_reg/2) * ((np.square(wi[:-1,:])).sum() + np.square(wo[:-1,:]).sum())
         cost += reg_term
@@ -107,18 +107,18 @@ class cxEntropyJ(object):
         # end up with the weights getting values -nan due to the substraction of the gradient
         # The way I implemented the network I can't find a way to fix this. It is not a propper fix.
         if predictedOutput==1:
-            predictedOutput = 1 - 10**-7
+            predictedOutput = 1 - 10**-6
         cx_entropy_derivative = np.divide(np.subtract(predictedOutput,actualOutput), sigmoidDerivative(predictedOutput))
 
         return cx_entropy_derivative
 
     @staticmethod
-    def reg_derivative(wi,wo,lambda_reg):
+    def reg_derivative(wi,wo,lambda_reg,num_samples):
 
         dw1 = np.zeros(wi.shape)
         dw2 = np.zeros(wo.shape)
-        dw1[:-1,:] = ((1.0)*lambda_reg)*(wi[:-1,:])
-        dw2[:-1,:] = ((1.0)*lambda_reg)*(wo[:-1,:])
+        dw1[:-1,:] = ((1.0)*lambda_reg)*(wi[:-1,:])/num_samples
+        dw2[:-1,:] = ((1.0)*lambda_reg)*(wo[:-1,:])/num_samples
         return dw1,dw2
 
     # @staticmethod
@@ -169,6 +169,9 @@ class NeuralNetwork(object):
             self.val_costf_per_epoch = []
             self.val_accuracy = []
 
+            # Number of elements
+            self.number_of_samples = 0
+
 
     def feedForwardNetwork(self, inputs):
             """
@@ -218,6 +221,8 @@ class NeuralNetwork(object):
         :param learning_rate:
         :return:
         '''
+
+        self.number_of_samples = len(training_labels)
 
 
         for epoch in range(number_of_epochs):
@@ -272,7 +277,7 @@ class NeuralNetwork(object):
         delta_hidden = np.dot(D1, self.wo[:-1,:])
         delta_hidden = np.dot(delta_hidden, delta_output)
 
-        dw1, dw2 = self.costFunction.reg_derivative(self.wi, self.wo, lambda_reg)
+        dw1, dw2 = self.costFunction.reg_derivative(self.wi, self.wo, lambda_reg, self.number_of_samples )
 
         # Gradient of the cost function with respect to the weights of output and hidden units
         dW1 = np.dot(delta_hidden[:,None], self.ai[:,None].T).T + dw1
@@ -315,13 +320,13 @@ class NeuralNetwork(object):
 
 
 
-    def costWithRegularization(self, paramlambda, predictedOutput, actualOutput):
-
-        J = self.costWithoutRegularization(predictedOutput, actualOutput)
-        # np.linalg.norm squares each element in an ndarray row and returns the sum of that row.
-        regularizationTerm = (paramlambda/ (2*m)) * [sum(np.linalg.norm(w)**2 for w in self.wi) + sum(np.linalg.norm(u)**2 for u in self.wo)]
-        totalCost = J + regularizationTerm
-        return totalCost
+    # def costWithRegularization(self, paramlambda, predictedOutput, actualOutput):
+    #
+    #     J = self.costWithoutRegularization(predictedOutput, actualOutput)
+    #     # np.linalg.norm squares each element in an ndarray row and returns the sum of that row.
+    #     regularizationTerm = (paramlambda/ (2*m)) * [sum(np.linalg.norm(w)**2 for w in self.wi) + sum(np.linalg.norm(u)**2 for u in self.wo)]
+    #     totalCost = J + regularizationTerm
+    #     return totalCost
 
 
     def gradientChecking(self, training_data, training_labels, learning_rate, lambda_reg=0, epsilon= 10**-4, errorThreshold = 10**-5):

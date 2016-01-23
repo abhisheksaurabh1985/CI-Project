@@ -10,12 +10,12 @@ import NeuralNetwork as nn
 
 
 
-with open('./data_dump/objs.pickle_train_small') as f:
+with open('./data_dump/objs.pickle_train') as f:
     training_matrix, labelsAsMatrix = pickle.load(f)
 
 
 ffn = nn.NeuralNetwork(150,100,1)
-ffn.SGDbackProp(training_matrix, labelsAsMatrix,5, 0.01, 0.0001)
+ffn.SGDbackProp(training_matrix, labelsAsMatrix,5, 0.1, 5)
 
 #with open('./output/objs.pickle_nn_200_3e_small', 'w') as f:
 #    pickle.dump(ffn, f)

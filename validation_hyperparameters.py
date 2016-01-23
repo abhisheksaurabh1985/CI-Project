@@ -6,7 +6,7 @@ import numpy as np
 import externalFunctions
 
 
-with open('./data_dump/objs.pickle_train_small') as f:
+with open('./data_dump/objs.pickle_train') as f:
     dataset_data, dataset_labels = pickle.load(f)
 
 
@@ -29,9 +29,9 @@ with open('./data_dump/objs.pickle_test') as f:
 #validation_data = dataset_data[1500:]
 #validation_labels = dataset_labels[1500:]
 
-learning_rates = np.logspace(-3,1,10)
-regularization_terms = np.logspace(-3, -1, 10)
-number_epochs = range(1,5)
+learning_rates = np.logspace(-3,0,10)
+regularization_terms = np.logspace(-1, 1, 10)
+number_epochs = range(2,7)
 number_hidden_units = range(50,151)
 
 number_trials = [10]#,20,30,40,50,100]
