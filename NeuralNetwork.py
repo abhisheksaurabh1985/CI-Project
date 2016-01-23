@@ -149,7 +149,13 @@ class NeuralNetwork(object):
             # Random weights
             self.wi, self.wo = self.randomlyInitializeParameters()
 
+            # Train values
             self.costf_per_epoch = []
+            self.accuracy_per_epoch = []
+
+            # Validation values
+            self.val_costf_per_epoch = []
+            self.val_accuracy = []
 
 
     def feedForwardNetwork(self, inputs):
@@ -186,7 +192,9 @@ class NeuralNetwork(object):
     def SGDbackProp(self, training_data, training_labels, number_of_epochs,
                     learning_rate,
                     lambda_reg=0,
-                    monitor=False):
+                    monitor=False,
+                    validation_data=None,
+                    validation_labels=None):
 
         '''
         Stochastic Gradient Descent Backpropagation Algorithm.
@@ -218,6 +226,12 @@ class NeuralNetwork(object):
 
             self.costf_per_epoch.append(np.sum(cost)/len(training_labels))
             print 'cost function per epoch: {}'.format(self.costf_per_epoch[-1])
+
+            #if monitor:
+            #    predicted_labels_train = self.testSample(training_data)
+            #    self.accuracy_per_epoch.append(self.getPrecisionRecallSupport(predicted_labels_train,training_labels))
+                #predicted_labels_validation = self.testSample(validation_data)
+                #self.val_accuracy.append(self.getPrecisionRecallSupport(predicted_labels_validation, validation_labels))
 
         return
 
@@ -366,7 +380,7 @@ class NeuralNetwork(object):
 
 
 
-    def getPrecisionRecallSupport(yPredicted, yActual):
+    def getPrecisionRecallSupport(self,yPredicted, yActual):
         '''
         Function returns the precision, recall and F1 score for both the groups i.e. PERSON_NAME and NON_PERSON_NAME.
         INPUT ARGUMENT:
@@ -381,3 +395,15 @@ class NeuralNetwork(object):
         # average = None, implies that  scores of both the classes will be returned.
         result = precision_recall_fscore_support(yPredicted, yActual, average=None)
         return result
+
+
+
+    def testSample(self, sample_data):
+
+        predicted_labels = []
+
+        for sample in sample_data:
+            self.feedForwardNetwork(sample)
+            predicted_labels.append(1 if self.ao>0.5 else 0)
+
+        return predicted_labels
