@@ -117,8 +117,8 @@ class cxEntropyJ(object):
 
         dw1 = np.zeros(wi.shape)
         dw2 = np.zeros(wo.shape)
-        dw1[:-1,:] = ((1.0)*lambda_reg)*(wi[:-1,:])/num_samples
-        dw2[:-1,:] = ((1.0)*lambda_reg)*(wo[:-1,:])/num_samples
+        dw1[:-1,:] = ((1.0)*lambda_reg)*(wi[:-1,:])#/num_samples
+        dw2[:-1,:] = ((1.0)*lambda_reg)*(wo[:-1,:])#/num_samples
         return dw1,dw2
 
     # @staticmethod
@@ -244,11 +244,6 @@ class NeuralNetwork(object):
             self.costf_per_epoch.append(np.sum(cost)/len(training_labels))
             print 'cost function per epoch: {}'.format(self.costf_per_epoch[-1])
 
-            #if monitor:
-            #    predicted_labels_train = self.testSample(training_data)
-            #    self.accuracy_per_epoch.append(self.getPrecisionRecallSupport(predicted_labels_train,training_labels))
-                #predicted_labels_validation = self.testSample(validation_data)
-                #self.val_accuracy.append(self.getPrecisionRecallSupport(predicted_labels_validation, validation_labels))
 
         return
 
@@ -268,11 +263,14 @@ class NeuralNetwork(object):
 
 
         # Derivatives of the cost function with respect to the output units
-        derivative_J_output = np.vectorize(self.costFunction.evaluate_derivative)
-        e = np.array(derivative_J_output(label_sample, self.ao))
+        #derivative_J_output = np.vectorize(self.costFunction.evaluate_derivative)
+        #e = np.array(derivative_J_output(label_sample, self.ao))
 
         # Backpropagated error up to the output units
-        delta_output = np.dot(D2, e)
+        #delta_output = np.dot(D2, e)
+
+        # Fix for using only cross entropy. Problem with generalizing different cost functions.
+        delta_output = np.subtract(self.ao, label_sample)
         # Backpropagated error up to the hidden layer
         delta_hidden = np.dot(D1, self.wo[:-1,:])
         delta_hidden = np.dot(delta_hidden, delta_output)
@@ -280,8 +278,8 @@ class NeuralNetwork(object):
         dw1, dw2 = self.costFunction.reg_derivative(self.wi, self.wo, lambda_reg, self.number_of_samples )
 
         # Gradient of the cost function with respect to the weights of output and hidden units
-        dW1 = np.dot(delta_hidden[:,None], self.ai[:,None].T).T + dw1
-        dW2 = np.dot(delta_output[:,None], self.ah[:,None].T).T + dw2
+        dW1 = np.dot(delta_hidden, self.ai[:,None].T).T + dw1
+        dW2 = np.dot(delta_output, self.ah[:,None].T).T + dw2
 
         return dW1, dW2
 
@@ -334,6 +332,7 @@ class NeuralNetwork(object):
         Source: http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-2-implementing-a-language-model-rnn-with-python-numpy-and-theano/
         '''
         # Get the gradients from backpropagation
+        self.number_of_samples = len(training_labels)
         for training_sample, training_label in zip(training_data, training_labels):
             dW,dU = self.backPropagation(training_sample, training_label, learning_rate, lambda_reg)
             gradientsFromBackProp = [dW,dU]

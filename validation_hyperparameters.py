@@ -6,7 +6,7 @@ import numpy as np
 import externalFunctions
 
 
-with open('./data_dump/objs.pickle_train') as f:
+with open('./data_dump/objs.pickle_train_small') as f:
     dataset_data, dataset_labels = pickle.load(f)
 
 
@@ -24,14 +24,15 @@ with open('./data_dump/objs.pickle_test') as f:
 
 
 # We will train over a smaller train dataset for finding hyperparameters
-#train_data = dataset_data[0:1500]
-#train_labels = dataset_labels[0:1500]
-#validation_data = dataset_data[1500:]
-#validation_labels = dataset_labels[1500:]
+train_data = dataset_data#[0:10000]
+train_labels = dataset_labels#[0:10000]
+validation_data = validation_data
+validation_labels = validation_labels
+
 
 learning_rates = np.logspace(-3,0,10)
-regularization_terms = np.logspace(-1, 1, 10)
-number_epochs = range(2,7)
+#regularization_terms = np.logspace(-3, 0, 10)
+number_epochs = range(2,70)
 number_hidden_units = range(50,151)
 
 number_trials = [10]#,20,30,40,50,100]
@@ -45,25 +46,25 @@ for trials in number_trials:
     hyp_parameters_list = []
     for i in range(trials):
         learning_rate = random.choice(learning_rates)
-        regularization_term = random.choice(regularization_terms)
+        #regularization_term = random.choice(regularization_terms)
         number_epoch = random.choice(number_epochs)
         hidden_units = random.choice(number_hidden_units)
 
         # Set of hyperparameters
-        hyp_parameters = [learning_rate, regularization_term,
+        hyp_parameters = [learning_rate, 0,
                           number_epoch, hidden_units]
 
 
         print 'Values of hyperparameters:'
         print 'learning rate: {}'.format(learning_rate)
-        print 'regularization term: {}'.format(regularization_term)
+        print 'regularization term: {}'.format(0)
         print 'number of epochs: {}'.format(number_epoch)
         print 'hidden units: {}'.format(hidden_units)
 
         # Train
         nn = NeuralNetwork.NeuralNetwork(150, hidden_units, 1)
         nn.SGDbackProp(dataset_data, dataset_labels,number_epoch,
-                        learning_rate,regularization_term)
+                        learning_rate,0)
         #nn.SGDbackProp(train_data, train_labels,10,
         #               0.01,0.001)
                        #validation_data=validation_data,
